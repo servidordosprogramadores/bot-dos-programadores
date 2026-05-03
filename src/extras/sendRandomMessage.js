@@ -24,21 +24,21 @@ const lists = [
       "Conheça os cargos do servidor! Confira o chat <#1381473062108790814>.",
     ],
   },
-  {
-    name: "Alura",
-    accentColor: 0x164381,
-    webhookUsername: "Alura",
-    webhookAvatarURL: "https://play-lh.googleusercontent.com/yDjaHCaOn_O89vnY7eOKH6ElEBtJrmN2CSI4yhiP1_GVC2zrxXWSFGxO0lt9-CU0mV4",
-    linkLabel: "Conheça a Alura",
-    linkUrl: "https://alura.com.br/caioandres",
-    messages: [
-      "Quer evoluir de verdade na programação? A **Alura** tem +2000 cursos com prática real, certificação e conteúdos atualizados toda semana!\n-# A **Alura** é a maior escola de tecnologia do Brasil.",
-      "Se você quer aprender tech de forma estruturada, a **Alura** tem trilhas completas de carreira com cursos, projetos e suporte pra te levar pro próximo nível.\n-# A **Alura** é a maior escola de tecnologia do Brasil.",
-      "Aprenda programação, dados, IA, DevOps e muito mais na **Alura**, a maior escola de tecnologia do Brasil, com conteúdos práticos e didática diferenciada.\n-# A **Alura** é a maior escola de tecnologia do Brasil.",
-      "Estude no seu ritmo e ainda tenha acesso a IA da **Alura** (Luri) pra tirar dúvidas e acelerar seu aprendizado.\n-# A **Alura** é a maior escola de tecnologia do Brasil.",
-      "Quer entrar ou crescer na área de tecnologia? A **Alura** conecta você ao mercado com cursos, certificados e até oportunidades de carreira.\n-# A **Alura** é a maior escola de tecnologia do Brasil.",
-    ]
-  },
+  // {
+  //   name: "Alura",
+  //   accentColor: 0x164381,
+  //   webhookUsername: "Alura",
+  //   webhookAvatarURL: "https://play-lh.googleusercontent.com/yDjaHCaOn_O89vnY7eOKH6ElEBtJrmN2CSI4yhiP1_GVC2zrxXWSFGxO0lt9-CU0mV4",
+  //   linkLabel: "Conheça a Alura",
+  //   linkUrl: "https://alura.com.br/caioandres",
+  //   messages: [
+  //     "Quer evoluir de verdade na programação? A **Alura** tem +2000 cursos com prática real, certificação e conteúdos atualizados toda semana!\n-# A **Alura** é a maior escola de tecnologia do Brasil.",
+  //     "Se você quer aprender tech de forma estruturada, a **Alura** tem trilhas completas de carreira com cursos, projetos e suporte pra te levar pro próximo nível.\n-# A **Alura** é a maior escola de tecnologia do Brasil.",
+  //     "Aprenda programação, dados, IA, DevOps e muito mais na **Alura**, a maior escola de tecnologia do Brasil, com conteúdos práticos e didática diferenciada.\n-# A **Alura** é a maior escola de tecnologia do Brasil.",
+  //     "Estude no seu ritmo e ainda tenha acesso a IA da **Alura** (Luri) pra tirar dúvidas e acelerar seu aprendizado.\n-# A **Alura** é a maior escola de tecnologia do Brasil.",
+  //     "Quer entrar ou crescer na área de tecnologia? A **Alura** conecta você ao mercado com cursos, certificados e até oportunidades de carreira.\n-# A **Alura** é a maior escola de tecnologia do Brasil.",
+  //   ]
+  // },
   {
     name: "Hostinger",
     accentColor: 0x644ABE,
