@@ -85,7 +85,8 @@ async function createTicket(interaction) {
         )
       );
 
-    await interaction.reply({
+    await interaction.update({ components: interaction.message.components });
+    await interaction.followUp({
       flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
       components: [container],
     });
@@ -178,7 +179,8 @@ async function createTicket(interaction) {
     );
 
   console.log(`[Support] ✓ Ticket criado com sucesso para ${user.tag}.`);
-  await interaction.reply({
+  await interaction.update({ components: interaction.message.components });
+  await interaction.followUp({
     flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
     components: [successContainer],
   });
