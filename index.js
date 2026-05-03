@@ -13,8 +13,6 @@ const { handleSupportInteraction } = require("./src/support/resolve");
 const { startRandomMessages } = require("./src/extras/sendRandomMessage");
 const { sendEmbassadorPanel, handleEmbassadorButton } = require("./src/extras/embassador");
 const ranking = require("./src/ranking/ranking");
-const express = require("express");
-const bodyParser = require("body-parser");
 
 const client = new Client({
   intents: [
@@ -74,15 +72,3 @@ client
     console.error("Erro ao fazer login:", error);
 
   });
-
-const app = express();
-app.use(bodyParser.json());
-
-app.get("/", (req, res) =>
-  res.status(200).send("OK - Servidor dos Programadores")
-);
-
-const PORT = parseInt(process.env.PORT, 10) || 80;
-app.listen(PORT, () => {
-  console.log(`Servidor Express ouvindo na porta ${PORT}`);
-});

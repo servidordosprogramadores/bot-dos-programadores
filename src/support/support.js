@@ -102,6 +102,13 @@ async function sendSupportEmbed(client) {
               )
               .setEmoji("1455329059268722719"),
             new StringSelectMenuOptionBuilder()
+              .setLabel("Hackathons / Eventos")
+              .setValue("ticket_hackathon")
+              .setDescription(
+                "Dúvidas sobre hackathons e eventos do servidor."
+              )
+              .setEmoji("1500615697531932712"),
+            new StringSelectMenuOptionBuilder()
               .setLabel("Outros")
               .setValue("ticket_other")
               .setDescription(

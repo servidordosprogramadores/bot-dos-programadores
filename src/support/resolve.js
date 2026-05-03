@@ -14,6 +14,7 @@ const CATEGORY_MAP = {
   "ticket_report": "Denúncia",
   "ticket_jobs": "Vagas & Oportunidades",
   "ticket_partnership": "Parcerias / Contato",
+  "ticket_hackathon": "Hackathons / Eventos",
 };
 
 async function handleSupportInteraction(interaction) {
@@ -108,7 +109,10 @@ async function createTicket(interaction) {
     },
   ];
 
-  const rolesToAdd = [CEO_ROLE_ID, ADMINISTRADOR_ROLE_ID, SUPORTE_ROLE_ID];
+  const isPartnership = values[0] === "ticket_partnership";
+  const rolesToAdd = isPartnership
+    ? [CEO_ROLE_ID]
+    : [CEO_ROLE_ID, ADMINISTRADOR_ROLE_ID, SUPORTE_ROLE_ID];
   rolesToAdd.forEach((roleId) => {
     if (roleId) {
       permissionOverwrites.push({
