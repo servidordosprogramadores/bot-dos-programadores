@@ -15,6 +15,7 @@ const { sendEmbassadorPanel, handleEmbassadorButton } = require("./src/extras/em
 const { sendGithubPanel } = require("./src/github/sendMessage");
 const { handleAddGithubButton, handleRemoveGithubButton } = require("./src/github/addGithub");
 const { startCronGithub } = require("./src/github/cronGithub");
+const { startApi } = require("./src/github/api/index");
 const ranking = require("./src/ranking/ranking");
 
 const client = new Client({
@@ -44,6 +45,7 @@ client.once(Events.ClientReady, async (readyClient) => {
     await sendEmbassadorPanel(readyClient);
     await sendGithubPanel(readyClient);
     startCronGithub(readyClient);
+    startApi();
     await startRandomMessages(readyClient);
     ranking(readyClient);
   } catch (error) {
