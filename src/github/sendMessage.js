@@ -3,6 +3,8 @@ const {
   MediaGalleryBuilder,
   MediaGalleryItemBuilder,
   TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
@@ -66,6 +68,7 @@ async function sendGithubPanel(client) {
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent("-# Você precisa ter seu GitHub vinculado ao seu perfil do Discord para continuar."),
         ),
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small),
       new ActionRowBuilder()
         .addComponents(
           new ButtonBuilder()
