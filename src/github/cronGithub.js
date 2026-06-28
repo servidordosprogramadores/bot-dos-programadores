@@ -65,6 +65,8 @@ async function runUpdate(client) {
       await GithubModel.updateOne(
         { discordId: profile.discordId },
         {
+          discordUsername: member.user.username,
+          discordAvatar: member.user.displayAvatarURL({ extension: "png", size: 256 }),
           profileUrl: githubInfo.html_url,
           name: githubInfo.name,
           bio: githubInfo.bio,

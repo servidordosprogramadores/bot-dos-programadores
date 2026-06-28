@@ -6,7 +6,7 @@ require("dotenv").config();
 const app = express();
 app.use(cors());
 const PORT = process.env.PORT || 3000;
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 1 * 60 * 1000;
 
 let cache = null;
 let cacheAt = null;
