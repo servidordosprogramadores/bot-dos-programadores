@@ -3,6 +3,8 @@ require("dotenv").config();
 
 const githubSchema = new mongoose.Schema({
   discordId: { type: String, required: true, unique: true },
+  discordUsername: String,
+  discordAvatar: String,
   githubUsername: { type: String, required: true },
   profileUrl: String,
   name: String,

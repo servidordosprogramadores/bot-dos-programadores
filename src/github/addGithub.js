@@ -129,6 +129,8 @@ async function handleAddGithubButton(interaction) {
 
     await GithubModel.create({
       discordId: userId,
+      discordUsername: interaction.user.username,
+      discordAvatar: interaction.user.displayAvatarURL({ extension: "png", size: 256 }),
       githubUsername,
       profileUrl: githubInfo.html_url,
       name: githubInfo.name,
