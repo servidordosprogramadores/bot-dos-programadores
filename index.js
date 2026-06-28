@@ -12,6 +12,9 @@ const { sendSupportEmbed } = require("./src/support/support");
 const { handleSupportInteraction } = require("./src/support/resolve");
 const { startRandomMessages } = require("./src/extras/sendRandomMessage");
 const { sendEmbassadorPanel, handleEmbassadorButton } = require("./src/extras/embassador");
+const { sendGithubPanel } = require("./src/github/sendMessage");
+const { handleAddGithubButton, handleRemoveGithubButton } = require("./src/github/addGithub");
+const { startCronGithub } = require("./src/github/cronGithub");
 const ranking = require("./src/ranking/ranking");
 
 const client = new Client({
@@ -39,6 +42,8 @@ client.once(Events.ClientReady, async (readyClient) => {
     await sendColorEmbed(readyClient);
     await sendSupportEmbed(readyClient);
     await sendEmbassadorPanel(readyClient);
+    await sendGithubPanel(readyClient);
+    startCronGithub(readyClient);
     await startRandomMessages(readyClient);
     ranking(readyClient);
   } catch (error) {
@@ -52,6 +57,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await handleTechButtonClick(interaction);
       await handleSupportInteraction(interaction);
       await handleEmbassadorButton(interaction);
+      await handleAddGithubButton(interaction);
+      await handleRemoveGithubButton(interaction);
     } else if (interaction.isStringSelectMenu()) {
       await handleColorSelectClick(interaction);
       await handleSupportInteraction(interaction);

@@ -49,7 +49,7 @@ const payload = {
         },
         {
           "type": 10,
-          "content": "-# Ao entrar no **Servidor do Programadores**, você concorda com os **[Termos de Serviço](https://discord.com/terms)**e **[Diretrizes da Comunidade](https://discord.com/guidelines)**do **Discord**."
+          "content": "-# Ao entrar no **Servidor do Programadores**, você concorda com os **[Termos de Serviço](https://discord.com/terms)** e **[Diretrizes da Comunidade](https://discord.com/guidelines) **do **Discord**."
         }
       ]
     }
