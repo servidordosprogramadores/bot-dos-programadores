@@ -58,7 +58,7 @@ async function sendGithubPanel(client) {
           new TextDisplayBuilder().setContent("Temos uma galeria com os perfis do GitHub da galera do servidor, onde todo mundo pode conhecer novos devs, ver projetos, acompanhar repositórios e se conectar!"),
         )
         .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent("### Link: https://repositorios.servidordosprogramadores.com"),
+          new TextDisplayBuilder().setContent("### Link: https://galeria.servidordosprogramadores.com/"),
         )
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent("Para adicionar seu perfil, clique no botão **Adicionar GitHub** abaixo."),
