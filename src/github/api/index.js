@@ -1,8 +1,10 @@
 const express = require("express");
+const cors = require("cors");
 const { connectDB, GithubModel } = require("../model");
 require("dotenv").config();
 
 const app = express();
+app.use(cors());
 const PORT = process.env.PORT || 3000;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
