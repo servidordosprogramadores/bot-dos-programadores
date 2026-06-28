@@ -69,7 +69,7 @@ async function sendGithubPanel(client) {
       new ActionRowBuilder()
         .addComponents(
           new ButtonBuilder()
-            .setStyle(ButtonStyle.Success)
+            .setStyle(ButtonStyle.Primary)
             .setLabel("Adicionar GitHub")
             .setCustomId("add_github_button"),
           new ButtonBuilder()
