@@ -5,13 +5,33 @@ const GUILD_ID = process.env.GUILD_ID;
 const BATCH_SIZE = 200;
 const INTERVAL_MS = 10 * 60 * 1000;
 
+const GITHUB_HEADERS = {
+  Authorization: `token ${process.env.GITHUB_TOKEN}`,
+  Accept: "application/vnd.github.v3+json",
+};
+
+async function resolveUsernameById(githubId) {
+  try {
+    const response = await fetch(`https://api.github.com/users?since=${githubId - 1}&per_page=1`, {
+      headers: GITHUB_HEADERS,
+    });
+
+    if (!response.ok) return null;
+
+    const users = await response.json();
+    if (!users.length || users[0].id !== githubId) return null;
+
+    return users[0].login;
+  } catch (error) {
+    console.error(`[CronGitHub] Falha ao resolver username pelo ID ${githubId}:`, error);
+    return null;
+  }
+}
+
 async function getGithubInfo(username) {
   try {
     const response = await fetch(`https://api.github.com/users/${username}`, {
-      headers: {
-        Authorization: `token ${process.env.GITHUB_TOKEN}`,
-        Accept: "application/vnd.github.v3+json",
-      },
+      headers: GITHUB_HEADERS,
     });
 
     if (!response.ok) {
@@ -56,7 +76,21 @@ async function runUpdate(client) {
         continue;
       }
 
-      const githubInfo = await getGithubInfo(profile.githubUsername);
+      const currentUsername = profile.githubId
+        ? await resolveUsernameById(profile.githubId)
+        : profile.githubUsername;
+
+      if (!currentUsername) {
+        console.warn(`[CronGitHub] Não foi possível resolver username para ID ${profile.githubId} (@${profile.githubUsername}). Pulando.`);
+        failed++;
+        continue;
+      }
+
+      if (currentUsername !== profile.githubUsername) {
+        console.log(`[CronGitHub] Username mudou para ${profile.discordId}: @${profile.githubUsername} → @${currentUsername}`);
+      }
+
+      const githubInfo = await getGithubInfo(currentUsername);
       if (!githubInfo) {
         failed++;
         continue;
@@ -67,6 +101,8 @@ async function runUpdate(client) {
         {
           discordUsername: member.user.username,
           discordAvatar: member.user.displayAvatarURL({ extension: "png", size: 256 }),
+          githubId: githubInfo.id,
+          githubUsername: githubInfo.login,
           profileUrl: githubInfo.html_url,
           name: githubInfo.name,
           bio: githubInfo.bio,
