@@ -34,6 +34,8 @@ async function getGithubInfo(username) {
       headers: GITHUB_HEADERS,
     });
 
+    if (response.status === 404) return { notFound: true };
+
     if (!response.ok) {
       console.error(`[CronGitHub] Erro ao buscar @${username}: ${response.status}`);
       return null;
@@ -91,8 +93,16 @@ async function runUpdate(client) {
       }
 
       const githubInfo = await getGithubInfo(currentUsername);
+
       if (!githubInfo) {
         failed++;
+        continue;
+      }
+
+      if (githubInfo.notFound) {
+        await GithubModel.deleteOne({ discordId: profile.discordId });
+        console.log(`[CronGitHub] ✗ @${profile.githubUsername} não encontrado no GitHub (404) e sem ID para resolver. Removido do banco.`);
+        removed++;
         continue;
       }
 
