@@ -25,27 +25,47 @@ const payload = {
         },
         {
           "type": 10,
-          "content": "# Regras do servidor\nPara manter o ambiente seguro e acolhedor, siga as regras abaixo com respeito e bom senso:"
+          "content": "# Regras do Servidor\nPara manter um ambiente seguro, organizado e acolhedor para todos os membros, siga as regras abaixo:"
         },
         {
           "type": 10,
-          "content": "### 1. Seja respeitoso com todos no servidor\nQueremos que este servidor seja um lugar amigável para todos. Respeite as opiniões, crenças e limites dos outros."
+          "content": "### 1. Respeito e Convivência\nTrate todos os membros com respeito. Ataques pessoais, provocações, humilhações, assédio, perseguição, intimidação ou qualquer comportamento hostil não serão tolerados. Discussões e debates saudáveis são permitidos, mas brigas e conflitos pessoais não."
         },
         {
           "type": 10,
-          "content": "### 2. Nada de discurso de ódio, racismo ou discriminação\nQualquer forma de discurso de ódio, comentários racistas, sexistas ou ataques com base em religião ou identidade  não serão tolerados."
+          "content": "### 2. Discriminação e Discurso de Ódio\nÉ proibido qualquer tipo de racismo, xenofobia, homofobia, machismo, capacitismo, discriminação religiosa ou qualquer outra forma de preconceito ou discurso de ódio, mesmo quando apresentado como brincadeira."
         },
         {
           "type": 10,
-          "content": "### 3. Sem spam, flood ou propaganda\nEvite enviar mensagens repetidas, menções desnecessárias, links ou propagandas. Mantenha o chat limpo e agradável."
+          "content": "### 3. Conteúdo Inapropriado\nNão é permitido compartilhar gore, conteúdo ilegal, pornográfico - conversas de qualquer conteúdo adulto, sejam imagens de cunho sexual ou linguagem obscena. Esta regra também se aplica a nicknames, perfis, biografias, banners, avatares e qualquer outro conteúdo exibido no servidor."
         },
         {
           "type": 10,
-          "content": "### 4. Mantenha o conteúdo apropriado\nConteúdo NSFW (impróprio para o trabalho), gore ou ofensivo não é permitido. Isso inclui imagens e mensagens."
+          "content": "### 4. Spam e Flood\nSpam, flood, envio repetitivo de mensagens, mídias, emojis, comandos ou menções excessivas não são permitidos."
         },
         {
           "type": 10,
-          "content": "### 5. Siga as orientações da equipe\nModeradores e administradores estão aqui para manter o servidor seguro e divertido. Siga as instruções deles sempre."
+          "content": "### 5. Divulgação e Autopromoção\nA divulgação de projetos pessoais, portfólios e redes sociais deve ocorrer apenas nos canais apropriados. A divulgação por mensagens privadas utilizando o servidor para captar membros, promover serviços ou fazer propaganda não autorizada é proibida."
+        },
+        {
+          "type": 10,
+          "content": "### 6. Privacidade e Segurança\nÉ proibido compartilhar informações pessoais suas ou de terceiros, incluindo telefones, endereços, e-mails ou outros dados privados. Doxxing, vazamento de informações e exposição de conversas privadas sem consentimento não serão tolerados."
+        },
+        {
+          "type": 10,
+          "content": "### 7. Temas Sensíveis\nDiscussões sobre política, religião, ideologias, guerras ou outros temas potencialmente polêmicos poderão ser encerradas pela moderação caso estejam gerando conflitos, desconforto ou prejudicando o ambiente da comunidade."
+        },
+        {
+          "type": 10,
+          "content": "### 8. Canais de Voz e Compartilhamento de Tela\nNão é permitido utilizar soundboards de forma abusiva, causar ruídos excessivos, utilizar modificadores de voz para “trollagem” ou compartilhar conteúdo que infrinja qualquer regra do servidor."
+        },
+        {
+          "type": 10,
+          "content": "### 9. Tentativas de Burlar Regras\nO uso de contas alternativas para evitar punições, auxiliar membros punidos a contornar restrições ou a insistência contínua em comportamentos inadequados também serão considerados infrações."
+        },
+        {
+          "type": 10,
+          "content": "### 10. Decisões da Moderação\nA equipe de moderação poderá agir em situações que prejudiquem a comunidade, mesmo que não estejam descritas explicitamente nestas regras. Tentar explorar brechas, contornar regras ou agir de má-fé será tratado como infração.\n\nEm caso de dúvidas, denúncias ou problemas, entre em contato com a equipe através de **#suporte**."
         },
         {
           "type": 10,
