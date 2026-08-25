@@ -23,52 +23,7 @@ const lists = [
       "Impulsione o servidor! Confira o chat <#1363964628639551498>.",
       "Conheça os cargos do servidor! Confira o chat <#1381473062108790814>.",
     ],
-  },
-  // {
-  //   name: "Alura",
-  //   accentColor: 0x164381,
-  //   webhookUsername: "Alura",
-  //   webhookAvatarURL: "https://play-lh.googleusercontent.com/yDjaHCaOn_O89vnY7eOKH6ElEBtJrmN2CSI4yhiP1_GVC2zrxXWSFGxO0lt9-CU0mV4",
-  //   linkLabel: "Conheça a Alura",
-  //   linkUrl: "https://alura.com.br/caioandres",
-  //   messages: [
-  //     "Quer evoluir de verdade na programação? A **Alura** tem +2000 cursos com prática real, certificação e conteúdos atualizados toda semana!\n-# A **Alura** é a maior escola de tecnologia do Brasil.",
-  //     "Se você quer aprender tech de forma estruturada, a **Alura** tem trilhas completas de carreira com cursos, projetos e suporte pra te levar pro próximo nível.\n-# A **Alura** é a maior escola de tecnologia do Brasil.",
-  //     "Aprenda programação, dados, IA, DevOps e muito mais na **Alura**, a maior escola de tecnologia do Brasil, com conteúdos práticos e didática diferenciada.\n-# A **Alura** é a maior escola de tecnologia do Brasil.",
-  //     "Estude no seu ritmo e ainda tenha acesso a IA da **Alura** (Luri) pra tirar dúvidas e acelerar seu aprendizado.\n-# A **Alura** é a maior escola de tecnologia do Brasil.",
-  //     "Quer entrar ou crescer na área de tecnologia? A **Alura** conecta você ao mercado com cursos, certificados e até oportunidades de carreira.\n-# A **Alura** é a maior escola de tecnologia do Brasil.",
-  //   ]
-  // },
-  {
-    name: "Hostinger",
-    accentColor: 0x644ABE,
-    webhookUsername: "Hostinger",
-    webhookAvatarURL: "https://s3-eu-west-1.amazonaws.com/tpd/logos/580cbf960000ff0005966f44/0x0.png",
-    linkLabel: "Conheça a Hostinger",
-    linkUrl: "https://www.hostinger.com/br/servidor-vps?utm_medium=affiliate&utm_source=aff229732&utm_campaign=815&session=10299ba9e551ae1e99dbd58a3781a7",
-    messages: [
-      "Quer automatizar tudo sem dor de cabeça? Com a VPS da **Hostinger** você roda n8n, conecta apps e deixa seus workflows funcionando 24/7 com alta performance.\n-# A **Hostinger** é referência mundial em hospedagem.",
-      "Já pensou em ter seu próprio ChatGPT? Com a VPS da **Hostinger** você pode rodar e personalizar seu próprio modelo de IA com total controle.\n-# A **Hostinger** é referência mundial em hospedagem.",
-      "Acompanhe seus dados em tempo real com facilidade! Na VPS da **Hostinger** você sobe Grafana em poucos cliques e cria dashboards completos!\n-# A **Hostinger** é referência mundial em hospedagem.",
-      "Deploy de aplicações nunca foi tão simples! Use Docker na VPS da **Hostinger** e gerencie seus projetos de forma rápida, organizada e escalável!\n-# A **Hostinger** é referência mundial em hospedagem.",
-      "Precisa de um ambiente pra testar qualquer projeto? Com a VPS da **Hostinger** você tem liberdade total pra rodar qualquer stack com performance e segurança!\n-# A **Hostinger** é referência mundial em hospedagem.",
-    ]
-  },
-  {
-    name: "Acelera Dev",
-    accentColor: 0x00C7B2,
-    webhookUsername: "Acelera Dev",
-    webhookAvatarURL: "https://i.postimg.cc/XqNnMVmr/acelera.png",
-    linkLabel: "Conheça o Acelera Dev",
-    linkUrl: "https://tinyurl.com/4ppx2kah",
-    messages: [
-      "Se você quer entrar na área tech mas tá meio perdido, o **Acelera Dev** te mostra exatamente o que fazer pra conseguir sua primeira vaga.\n-# O **Acelera Dev** é gerenciado pelo dev sênior **[@pctheonee](https://instagram.com/pctheonee)**.",
-      "Currículo não chama atenção? No **Acelera Dev** você aprende a montar um perfil que realmente atrai recrutador.\n-# O **Acelera Dev** é gerenciado pelo dev sênior **[@pctheonee](https://instagram.com/pctheonee)**.",
-      "Tá travando em entrevista? O **Acelera Dev** te ajuda a saber o que falar e como se posicionar.\n-# O **Acelera Dev** é gerenciado pelo dev sênior **[@pctheonee](https://instagram.com/pctheonee)**.",
-      "Lá dentro tem comunidade no Discord com gente na mesma jornada, vagas e networking rolando direto.\n-# O **Acelera Dev** é gerenciado pelo dev sênior **[@pctheonee](https://instagram.com/pctheonee)**.",
-      "Se a meta é conseguir um SIM em tech, o **Acelera Dev** te dá o caminho e acompanha sua evolução.\n-# O **Acelera Dev** é gerenciado pelo dev sênior **[@pctheonee](https://instagram.com/pctheonee)**.",
-    ]
-  },
+  }
 ];
 
 let lastListIndex = -1;
