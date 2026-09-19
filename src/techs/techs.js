@@ -8,12 +8,16 @@ const {
   SeparatorSpacingSize,
   SeparatorBuilder,
   MediaGalleryBuilder,
+  AttachmentBuilder,
 } = require("discord.js");
 const { setRole } = require("./setRole");
 const { removeRole } = require("./removeRole");
 require("dotenv").config();
 
 let channelWebhook = null;
+
+const BANNER_URL = "https://i.postimg.cc/XJ9cgtR7/PROGRAMADORES5.png";
+const BANNER_NAME = "techs-banner.png";
 
 const TECHS = [
   {
@@ -115,7 +119,7 @@ function createTechsLayoutV2() {
   const media = new MediaGalleryBuilder().addItems([
     {
       media: {
-        url: "https://i.postimg.cc/XJ9cgtR7/PROGRAMADORES5.png",
+        url: `attachment://${BANNER_NAME}`,
       },
     },
   ]);
@@ -236,17 +240,24 @@ async function sendTechLayoutMessage(client) {
     console.log("[Techs] Limpando mensagens anteriores...");
     const messages = await techsChannel.messages.fetch({ limit: 10 });
     if (messages.size > 0) {
-      await techsChannel.bulkDelete(messages);
-      console.log(`[Techs] ✓ ${messages.size} mensagem(ns) deletada(s).`);
+      try {
+        await techsChannel.bulkDelete(messages, true);
+        console.log(`[Techs] ✓ ${messages.size} mensagem(ns) deletada(s).`);
+      } catch (err) {
+        console.error("[Techs] ✗ Falha ao limpar mensagens antigas. Enviando painel mesmo assim:", err);
+      }
     } else {
       console.log("[Techs] Nenhuma mensagem para limpar.");
     }
 
     const components = createTechsLayoutV2();
+    const banner = new AttachmentBuilder(BANNER_URL, { name: BANNER_NAME });
+
     await channelWebhook.send({
       username: "Escolha suas tecnologias",
       avatarURL: "https://i.postimg.cc/d1hG6tLd/lightning-fill.png",
       components,
+      files: [banner],
       flags: MessageFlags.IsComponentsV2,
     });
 
