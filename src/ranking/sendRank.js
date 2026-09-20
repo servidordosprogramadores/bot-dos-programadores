@@ -71,7 +71,7 @@ async function sendRankMessage(client, textRank, voiceRank) {
         new TextDisplayBuilder().setContent("# Ranking dos membros mais ativos"),
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent("Este ranking destaca os membros mais ativos do servidor, considerando a participação em mensagens, calls e interações ao longo do tempo."),
+        new TextDisplayBuilder().setContent("Este ranking destaca os membros mais ativos do servidor, contando as mensagens enviadas e o tempo em call."),
       )
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent("### <:chat:1455398639144013907> Mais ativos no chat"),
@@ -86,7 +86,7 @@ async function sendRankMessage(client, textRank, voiceRank) {
         new TextDisplayBuilder().setContent(voiceRank),
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent("Obrigado a todos que participam, ajudam e fortalecem nossa comunidade diariamente.\nPara conferir seu nível use o comando `/id`."),
+        new TextDisplayBuilder().setContent("Obrigado a todos que participam, ajudam e fortalecem nossa comunidade diariamente."),
       )
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(`-# Ultima atualização: <t:${Math.floor(Date.now() / 1000)}:R> `),

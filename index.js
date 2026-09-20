@@ -19,6 +19,7 @@ const { handleAddGithubButton, handleRemoveGithubButton } = require("./src/githu
 const { startCronGithub } = require("./src/github/cronGithub");
 const { startApi } = require("./src/github/api/index");
 const ranking = require("./src/ranking/ranking");
+const { trackActivity } = require("./src/ranking/activity");
 
 const client = new Client({
   intents: [
@@ -51,6 +52,7 @@ client.once(Events.ClientReady, async (readyClient) => {
     startCronGithub(readyClient);
     startApi();
     await startRandomMessages(readyClient);
+    trackActivity(readyClient);
     ranking(readyClient);
   } catch (error) {
     console.error("Erro ao processar informações do servidor:", error);
