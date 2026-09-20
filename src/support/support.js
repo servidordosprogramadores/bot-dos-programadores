@@ -10,8 +10,13 @@ const {
   SeparatorBuilder,
   SeparatorSpacingSize,
 } = require("discord.js");
+const { getPanelBanner, bannerReference } = require("../utils/panelBanner");
 
 const SUPPORT_CHANNEL_ID = process.env.SUPPORT_CHANNEL_ID;
+const BANNER_URL = "https://i.postimg.cc/TwSXwh0m/PRg1.png";
+const BANNER_NAME = "support-banner.png";
+
+let panelMessageId = null;
 
 async function sendSupportEmbed(client) {
   try {
@@ -33,13 +38,16 @@ async function sendSupportEmbed(client) {
       console.log(`[Support] ✓ Webhook encontrado: ${webhook.id}`);
     }
 
-    console.log("[Support] Limpando mensagens anteriores...");
-    const messages = await channel.messages.fetch({ limit: 10 });
-    if (messages.size > 0) {
-      await channel.bulkDelete(messages);
-      console.log(`[Support] ✓ ${messages.size} mensagem(ns) deletada(s).`);
-    } else {
-      console.log("[Support] Nenhuma mensagem para limpar.");
+    if (!panelMessageId) {
+      console.log("[Support] Procurando painel anterior...");
+      const messages = await channel.messages.fetch({ limit: 50 });
+      const existing = messages.find((message) => message.webhookId === webhook.id);
+      if (existing) {
+        panelMessageId = existing.id;
+        console.log(`[Support] ✓ Painel anterior encontrado: ${panelMessageId}`);
+      } else {
+        console.log("[Support] Nenhum painel anterior. Um novo será enviado.");
+      }
     }
 
     const components = [
@@ -47,9 +55,7 @@ async function sendSupportEmbed(client) {
         .setAccentColor(parseInt(process.env.MAIN_COLOR))
         .addMediaGalleryComponents(
           new MediaGalleryBuilder().addItems(
-            new MediaGalleryItemBuilder().setURL(
-              "https://i.postimg.cc/TwSXwh0m/PRg1.png"
-            )
+            new MediaGalleryItemBuilder().setURL(bannerReference(BANNER_NAME))
           )
         )
         .addTextDisplayComponents(
@@ -119,14 +125,33 @@ async function sendSupportEmbed(client) {
       ),
     ];
 
-    await webhook.send({
+    if (panelMessageId) {
+      try {
+        await webhook.editMessage(panelMessageId, {
+          components,
+          files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+          attachments: [],
+          flags: MessageFlags.IsComponentsV2,
+        });
+        console.log("[Support] ✓ Painel atualizado.");
+        return;
+      } catch (err) {
+        if (err.code !== 10008) throw err;
+        console.log("[Support] Painel anterior não existe mais. Enviando novo...");
+        panelMessageId = null;
+      }
+    }
+
+    const message = await webhook.send({
       username: "Suporte do servidor",
       avatarURL: "https://i.postimg.cc/4xygFMRb/phone-fill.png",
       flags: MessageFlags.IsComponentsV2,
       components: components,
+      files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
     });
 
-    console.log("[Support] Painel enviado com sucesso!");
+    panelMessageId = message.id;
+    console.log(`[Support] ✓ Painel enviado. ID: ${panelMessageId}`);
   } catch (error) {
     console.error("[Support] Erro ao enviar painel:", error);
   }

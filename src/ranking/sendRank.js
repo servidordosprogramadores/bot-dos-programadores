@@ -10,8 +10,11 @@ const {
   ButtonBuilder,
   ButtonStyle,
 } = require('discord.js');
+const { getPanelBanner, bannerReference } = require("../utils/panelBanner");
 
 const TARGET_CHANNEL_ID = process.env.RANKING_CHANNEL_ID;
+const BANNER_URL = "https://i.postimg.cc/hGWsSnVf/PRg2.png";
+const BANNER_NAME = "ranking-banner.png";
 
 let rankWebhook = null;
 let rankMessageId = null;
@@ -54,7 +57,7 @@ async function sendRankMessage(client, textRank, voiceRank) {
         new MediaGalleryBuilder()
           .addItems(
             new MediaGalleryItemBuilder()
-              .setURL("https://i.postimg.cc/hGWsSnVf/PRg2.png"),
+              .setURL(bannerReference(BANNER_NAME)),
           ),
       )
       .addTextDisplayComponents(
@@ -91,10 +94,13 @@ async function sendRankMessage(client, textRank, voiceRank) {
       ),
   ];
 
+  // O banner vem em cache de memória, então reenviá-lo a cada atualização não
+  // custa uma nova ida ao postimg.
   const sendOptions = {
     username: "Ranking do servidor",
     avatarURL: "https://i.postimg.cc/4Nt4QjZW/ranking-fill.png",
     components,
+    files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
     flags: MessageFlags.IsComponentsV2,
     allowedMentions: { parse: [] },
   };
@@ -104,6 +110,8 @@ async function sendRankMessage(client, textRank, voiceRank) {
     try {
       await rankWebhook.editMessage(rankMessageId, {
         components,
+        files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+        attachments: [],
         flags: MessageFlags.IsComponentsV2,
         allowedMentions: { parse: [] },
       });

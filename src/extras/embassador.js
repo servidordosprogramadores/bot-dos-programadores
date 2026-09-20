@@ -11,7 +11,13 @@ const {
   ButtonStyle,
 } = require("discord.js");
 const { setRole } = require("../techs/setRole");
+const { getPanelBanner, bannerReference } = require("../utils/panelBanner");
 require("dotenv").config();
+
+const BANNER_URL = "https://i.postimg.cc/8cXQwVRy/PROGRAMADORES7.png";
+const BANNER_NAME = "embassador-banner.png";
+
+let panelMessageId = null;
 
 const GUILD_ID = process.env.GUILD_ID;
 const EMBASSADOR_ROLE_ID = process.env.EMBASSADOR_ROLE_ID;
@@ -163,13 +169,16 @@ async function sendEmbassadorPanel(client) {
       console.log(`[Embassador] ✓ Webhook encontrado: ${channelWebhook.id}`);
     }
 
-    console.log("[Embassador] Limpando mensagens anteriores...");
-    const messages = await channel.messages.fetch({ limit: 10 });
-    if (messages.size > 0) {
-      await channel.bulkDelete(messages);
-      console.log(`[Embassador] ✓ ${messages.size} mensagem(ns) deletada(s).`);
-    } else {
-      console.log("[Embassador] Nenhuma mensagem para limpar.");
+    if (!panelMessageId) {
+      console.log("[Embassador] Procurando painel anterior...");
+      const messages = await channel.messages.fetch({ limit: 50 });
+      const existing = messages.find((message) => message.webhookId === channelWebhook.id);
+      if (existing) {
+        panelMessageId = existing.id;
+        console.log(`[Embassador] ✓ Painel anterior encontrado: ${panelMessageId}`);
+      } else {
+        console.log("[Embassador] Nenhum painel anterior. Um novo será enviado.");
+      }
     }
 
     const components = [
@@ -177,7 +186,7 @@ async function sendEmbassadorPanel(client) {
         .setAccentColor(1722367)
         .addMediaGalleryComponents(
           new MediaGalleryBuilder().addItems(
-            new MediaGalleryItemBuilder().setURL("https://i.postimg.cc/8cXQwVRy/PROGRAMADORES7.png"),
+            new MediaGalleryItemBuilder().setURL(bannerReference(BANNER_NAME)),
           ),
         )
         .addTextDisplayComponents(new TextDisplayBuilder().setContent("# Torne-se um embaixador"))
@@ -200,15 +209,35 @@ async function sendEmbassadorPanel(client) {
       ),
     ];
 
-    await channelWebhook.send({
+    if (panelMessageId) {
+      try {
+        await channelWebhook.editMessage(panelMessageId, {
+          components,
+          files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+          attachments: [],
+          flags: MessageFlags.IsComponentsV2,
+          allowedMentions: { parse: [] },
+        });
+        console.log("[Embassador] ✓ Painel atualizado.");
+        return;
+      } catch (err) {
+        if (err.code !== 10008) throw err;
+        console.log("[Embassador] Painel anterior não existe mais. Enviando novo...");
+        panelMessageId = null;
+      }
+    }
+
+    const message = await channelWebhook.send({
       username: "Painel de embaixador",
       avatarURL: "https://i.postimg.cc/dtSYgych/leaf-fill.png",
       components,
+      files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
       flags: MessageFlags.IsComponentsV2,
       allowedMentions: { parse: [] },
     });
 
-    console.log("[Embassador] ✓ Painel enviado com sucesso!");
+    panelMessageId = message.id;
+    console.log(`[Embassador] ✓ Painel enviado. ID: ${panelMessageId}`);
   } catch (error) {
     console.error("[Embassador] ✗ Erro ao enviar painel:", error);
   }

@@ -8,17 +8,16 @@ const {
   SeparatorSpacingSize,
   SeparatorBuilder,
   MediaGalleryBuilder,
-  AttachmentBuilder,
   PermissionFlagsBits,
   Events,
 } = require("discord.js");
 const { setRole } = require("./setRole");
 const { removeRole } = require("./removeRole");
+const { getPanelBanner, bannerReference } = require("../utils/panelBanner");
 require("dotenv").config();
 
 let channelWebhook = null;
 let panelMessageId = null;
-let bannerBuffer = null;
 let refreshTimer = null;
 
 const BANNER_URL = "https://i.postimg.cc/XJ9cgtR7/PROGRAMADORES5.png";
@@ -174,7 +173,7 @@ function createTechsLayoutV2(techs) {
   const media = new MediaGalleryBuilder().addItems([
     {
       media: {
-        url: `attachment://${BANNER_NAME}`,
+        url: bannerReference(BANNER_NAME),
       },
     },
   ]);
@@ -215,22 +214,6 @@ function createTechsLayoutV2(techs) {
   }
 
   return components;
-}
-
-/**
- * O painel é reeditado a cada mudança de cargo, então o banner fica em cache
- * para não baixar do postimg a cada re-render.
- */
-async function getBannerAttachment() {
-  if (!bannerBuffer) {
-    console.log("[Techs] Baixando banner uma única vez para cache...");
-    const response = await fetch(BANNER_URL);
-    if (!response.ok) throw new Error(`Falha ao baixar o banner: ${response.status}`);
-    bannerBuffer = Buffer.from(await response.arrayBuffer());
-    console.log(`[Techs] ✓ Banner em cache (${bannerBuffer.length} bytes).`);
-  }
-
-  return new AttachmentBuilder(bannerBuffer, { name: BANNER_NAME });
 }
 
 async function handleTechButtonClick(interaction) {
@@ -333,7 +316,7 @@ async function renderTechsPanel(client) {
     try {
       await channelWebhook.editMessage(panelMessageId, {
         components,
-        files: [await getBannerAttachment()],
+        files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
         attachments: [],
         flags: MessageFlags.IsComponentsV2,
       });
@@ -350,7 +333,7 @@ async function renderTechsPanel(client) {
     username: "Escolha suas tecnologias",
     avatarURL: "https://i.postimg.cc/d1hG6tLd/lightning-fill.png",
     components,
-    files: [await getBannerAttachment()],
+    files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
     flags: MessageFlags.IsComponentsV2,
   });
 

@@ -11,9 +11,14 @@ const {
 } = require("discord.js");
 const { setRole } = require("../techs/setRole");
 const { removeRole } = require("../techs/removeRole");
+const { getPanelBanner, bannerReference } = require("../utils/panelBanner");
 require("dotenv").config();
 
 let channelWebhook = null;
+let panelMessageId = null;
+
+const BANNER_URL = "https://i.postimg.cc/hvg8Zpn8/PROGRAMADORES4.png";
+const BANNER_NAME = "colors-banner.png";
 
 const PREMIUM_PERMISSION_ROLE_IDS = [
   process.env.CRIADOR_ROLE_ID,
@@ -180,7 +185,7 @@ function createColorsContainerV2() {
   const media = new MediaGalleryBuilder().addItems([
     {
       media: {
-        url: "https://i.postimg.cc/hvg8Zpn8/PROGRAMADORES4.png",
+        url: bannerReference(BANNER_NAME),
       },
     },
   ]);
@@ -381,26 +386,49 @@ async function sendColorEmbed(client) {
       console.log(`[Colors] ✓ Webhook encontrado: ${channelWebhook.id}`);
     }
 
-    console.log("[Colors] Limpando mensagens anteriores...");
-    const messages = await colorsChannel.messages.fetch({ limit: 10 });
-    if (messages.size > 0) {
-      await colorsChannel.bulkDelete(messages);
-      console.log(`[Colors] ✓ ${messages.size} mensagem(ns) deletada(s).`);
-    } else {
-      console.log("[Colors] Nenhuma mensagem para limpar.");
+    if (!panelMessageId) {
+      console.log("[Colors] Procurando painel anterior...");
+      const messages = await colorsChannel.messages.fetch({ limit: 50 });
+      const existing = messages.find((message) => message.webhookId === channelWebhook.id);
+      if (existing) {
+        panelMessageId = existing.id;
+        console.log(`[Colors] ✓ Painel anterior encontrado: ${panelMessageId}`);
+      } else {
+        console.log("[Colors] Nenhum painel anterior. Um novo será enviado.");
+      }
     }
 
     const components = createColorsContainerV2();
 
-    await channelWebhook.send({
+    if (panelMessageId) {
+      try {
+        await channelWebhook.editMessage(panelMessageId, {
+          components,
+          files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+          attachments: [],
+          flags: MessageFlags.IsComponentsV2,
+          allowedMentions: { parse: [] },
+        });
+        console.log("[Colors] ✓ Painel atualizado.");
+        return;
+      } catch (err) {
+        if (err.code !== 10008) throw err;
+        console.log("[Colors] Painel anterior não existe mais. Enviando novo...");
+        panelMessageId = null;
+      }
+    }
+
+    const message = await channelWebhook.send({
       username: "Escolha sua cor",
       avatarURL: "https://i.postimg.cc/jC09KFp5/palette-fill.png",
       components,
+      files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
       flags: MessageFlags.IsComponentsV2,
       allowedMentions: { parse: [] },
     });
 
-    console.log("[Colors] Painel enviado com sucesso!");
+    panelMessageId = message.id;
+    console.log(`[Colors] ✓ Painel enviado. ID: ${panelMessageId}`);
   } catch (error) {
     console.error("[Colors] Erro ao enviar painel:", error);
   }

@@ -10,9 +10,14 @@ const {
   ButtonStyle,
   MessageFlags,
 } = require("discord.js");
+const { getPanelBanner, bannerReference } = require("../utils/panelBanner");
 require("dotenv").config();
 
 let channelWebhook = null;
+let panelMessageId = null;
+
+const BANNER_URL = "https://i.postimg.cc/MKW4sc5c/github-banner.png";
+const BANNER_NAME = "github-banner.png";
 
 async function sendGithubPanel(client) {
   try {
@@ -31,13 +36,16 @@ async function sendGithubPanel(client) {
       console.log(`[GitHub] ✓ Webhook encontrado: ${channelWebhook.id}`);
     }
 
-    console.log("[GitHub] Limpando mensagens anteriores...");
-    const messages = await channel.messages.fetch({ limit: 100 });
-    if (messages.size > 0) {
-      await channel.bulkDelete(messages);
-      console.log(`[GitHub] ✓ ${messages.size} mensagem(ns) deletada(s).`);
-    } else {
-      console.log("[GitHub] Nenhuma mensagem para limpar.");
+    if (!panelMessageId) {
+      console.log("[GitHub] Procurando painel anterior...");
+      const messages = await channel.messages.fetch({ limit: 50 });
+      const existing = messages.find((message) => message.webhookId === channelWebhook.id);
+      if (existing) {
+        panelMessageId = existing.id;
+        console.log(`[GitHub] ✓ Painel anterior encontrado: ${panelMessageId}`);
+      } else {
+        console.log("[GitHub] Nenhum painel anterior. Um novo será enviado.");
+      }
     }
 
     const components = [
@@ -47,7 +55,7 @@ async function sendGithubPanel(client) {
           new MediaGalleryBuilder()
             .addItems(
               new MediaGalleryItemBuilder()
-                .setURL("https://i.postimg.cc/MKW4sc5c/github-banner.png"),
+                .setURL(bannerReference(BANNER_NAME)),
             ),
         )
         .addTextDisplayComponents(
@@ -86,15 +94,35 @@ async function sendGithubPanel(client) {
         ),
     ];
 
-    await channelWebhook.send({
+    if (panelMessageId) {
+      try {
+        await channelWebhook.editMessage(panelMessageId, {
+          components,
+          files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+          attachments: [],
+          flags: MessageFlags.IsComponentsV2,
+          allowedMentions: { parse: [] },
+        });
+        console.log("[GitHub] ✓ Painel atualizado.");
+        return;
+      } catch (err) {
+        if (err.code !== 10008) throw err;
+        console.log("[GitHub] Painel anterior não existe mais. Enviando novo...");
+        panelMessageId = null;
+      }
+    }
+
+    const message = await channelWebhook.send({
       username: "Galeria de GitHubs",
       avatarURL: "https://i.postimg.cc/zG379qKR/github-logo-fill.png",
       components,
+      files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
       flags: MessageFlags.IsComponentsV2,
       allowedMentions: { parse: [] },
     });
 
-    console.log("[GitHub] ✓ Painel enviado com sucesso!");
+    panelMessageId = message.id;
+    console.log(`[GitHub] ✓ Painel enviado. ID: ${panelMessageId}`);
   } catch (error) {
     console.error("[GitHub] ✗ Erro ao enviar painel:", error);
   }
