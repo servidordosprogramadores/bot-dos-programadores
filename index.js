@@ -3,6 +3,7 @@ const { Client, GatewayIntentBits, Events } = require("discord.js");
 const {
   handleTechButtonClick,
   sendTechLayoutMessage,
+  watchTechRoles,
 } = require("./src/techs/techs");
 const {
   handleColorSelectClick,
@@ -40,6 +41,7 @@ client.once(Events.ClientReady, async (readyClient) => {
     }
 
     await sendTechLayoutMessage(readyClient);
+    watchTechRoles(readyClient);
     await sendColorEmbed(readyClient);
     await sendSupportEmbed(readyClient);
     await sendEmbassadorPanel(readyClient);

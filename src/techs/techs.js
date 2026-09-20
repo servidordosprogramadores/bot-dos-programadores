@@ -9,110 +9,165 @@ const {
   SeparatorBuilder,
   MediaGalleryBuilder,
   AttachmentBuilder,
+  PermissionFlagsBits,
+  Events,
 } = require("discord.js");
 const { setRole } = require("./setRole");
 const { removeRole } = require("./removeRole");
 require("dotenv").config();
 
 let channelWebhook = null;
+let panelMessageId = null;
+let bannerBuffer = null;
+let refreshTimer = null;
 
 const BANNER_URL = "https://i.postimg.cc/XJ9cgtR7/PROGRAMADORES5.png";
 const BANNER_NAME = "techs-banner.png";
 
-const TECHS = [
-  {
-    id: "javascript",
-    name: "JavaScript",
-    emoji: "<:JavaScript:1381370650903445544>",
-    roleId: process.env.JAVASCRIPT_ROLE_ID,
-  },
-  {
-    id: "python",
-    name: "Python",
-    emoji: "<:Python:1381370968374771782>",
-    roleId: process.env.PYTHON_ROLE_ID,
-  },
-  {
-    id: "java",
-    name: "Java",
-    emoji: "<:Java:1381371080526004355>",
-    roleId: process.env.JAVA_ROLE_ID,
-  },
-  {
-    id: "clang",
-    name: "C",
-    emoji: "<:C_:1381371177045327892>",
-    roleId: process.env.C_ROLE_ID,
-  },
-  {
-    id: "csharp",
-    name: "C#",
-    emoji: "<:CSharp:1381371194816856104>",
-    roleId: process.env.CSHARP_ROLE_ID,
-  },
-  {
-    id: "cpp",
-    name: "C++",
-    emoji: "<:CPP:1381371126470676520>",
-    roleId: process.env.CPP_ROLE_ID,
-  },
-  {
-    id: "typescript",
-    name: "TypeScript",
-    emoji: "<:TypeScript:1381370724568141854>",
-    roleId: process.env.TYPESCRIPT_ROLE_ID,
-  },
-  {
-    id: "php",
-    name: "PHP",
-    emoji: "<:PHP:1381371029078933564>",
-    roleId: process.env.PHP_ROLE_ID,
-  },
-  {
-    id: "go",
-    name: "Go",
-    emoji: "<:Go:1381371321950146590>",
-    roleId: process.env.GO_ROLE_ID,
-  },
-  {
-    id: "kotlin",
-    name: "Kotlin",
-    emoji: "<:Kotlin:1381371358054715555>",
-    roleId: process.env.KOTLIN_ROLE_ID,
-  },
-  {
-    id: "swift",
-    name: "Swift",
-    emoji: "<:Swift:1381371449373098094>",
-    roleId: process.env.SWIFT_ROLE_ID,
-  },
-  {
-    id: "rust",
-    name: "Rust",
-    emoji: "<:Rust:1381371519707517009>",
-    roleId: process.env.RUST_ROLE_ID,
-  },
-  {
-    id: "html",
-    name: "HTML",
-    emoji: "<:HTML:1381370851068481647>",
-    roleId: process.env.HTML_ROLE_ID,
-  },
-  {
-    id: "css",
-    name: "CSS",
-    emoji: "<:CSS:1381370901618233344>",
-    roleId: process.env.CSS_ROLE_ID,
-  },
-  {
-    id: "discord",
-    name: "Discord",
-    emoji: "<:Discord:1381371570441814136>",
-    roleId: process.env.DISCORD_ROLE_ID,
-  },
-];
+// O Components V2 aceita no máximo 40 componentes por mensagem. O painel gasta 6
+// fixos (container, media gallery, 3 blocos de texto e o separador) e cada grupo
+// de 5 botões custa 1 action row, então 6 + ceil(n / 5) + n <= 40 dá n = 28.
+const MAX_TECHS = 28;
+const REFRESH_DEBOUNCE_MS = 5000;
 
-function createTechsLayoutV2() {
+/**
+ * Nome de emoji no Discord só aceita [a-z0-9_], então o cargo "C++" nunca casa
+ * com o emoji "CPP" de forma literal. Normalizar os dois lados resolve sem
+ * precisar de uma tabela de exceções.
+ */
+function normalizeName(value) {
+  return String(value)
+    .toLowerCase()
+    .replace(/\+/g, "p")
+    .replace(/#/g, "sharp")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * O ícone do cargo (role.icon) não serve para botão — botão só aceita emoji.
+ * Então o ícone vem do emoji customizado do servidor cujo nome casa com o cargo,
+ * com role.unicodeEmoji como segunda opção.
+ */
+function resolveEmoji(guild, role) {
+  const key = normalizeName(role.name);
+  const emoji = guild.emojis.cache.find((item) => normalizeName(item.name) === key);
+
+  if (emoji) {
+    return { id: emoji.id, name: emoji.name, animated: emoji.animated };
+  }
+
+  if (role.unicodeEmoji) return role.unicodeEmoji;
+
+  return null;
+}
+
+function logRoleReference(guild) {
+  const roles = [...guild.roles.cache.values()]
+    .filter((role) => role.id !== guild.id)
+    .sort((a, b) => b.position - a.position)
+    .slice(0, 40);
+
+  console.log("[Techs] Cargos do servidor, de cima para baixo, para configurar as variáveis:");
+  for (const role of roles) {
+    console.log(`[Techs]   position=${String(role.position).padStart(3)} id=${role.id} "${role.name}"`);
+  }
+}
+
+/**
+ * A lista de techs é todo cargo posicionado entre os dois cargos separadores.
+ * Nada vem de array fixo: criar, renomear, reordenar ou apagar um cargo no
+ * Discord já muda o painel.
+ */
+function resolveTechRoles(guild) {
+  const startId = process.env.TECHS_ROLE_START_ID;
+  const endId = process.env.TECHS_ROLE_END_ID;
+
+  if (!startId || !endId) {
+    console.error("[Techs] ✗ TECHS_ROLE_START_ID e/ou TECHS_ROLE_END_ID não configurados.");
+    logRoleReference(guild);
+    return [];
+  }
+
+  const start = guild.roles.cache.get(startId);
+  const end = guild.roles.cache.get(endId);
+
+  if (!start || !end) {
+    console.error(
+      `[Techs] ✗ Cargo separador não encontrado (início: ${start ? "ok" : startId}, fim: ${end ? "ok" : endId}).`
+    );
+    logRoleReference(guild);
+    return [];
+  }
+
+  if (start.position <= end.position) {
+    console.error(
+      `[Techs] ✗ Separadores invertidos: "${start.name}" (position ${start.position}) precisa estar acima de "${end.name}" (position ${end.position}).`
+    );
+    return [];
+  }
+
+  const me = guild.members.me;
+
+  if (!me.permissions.has(PermissionFlagsBits.ManageRoles)) {
+    console.error("[Techs] ✗ O bot não tem a permissão Gerenciar Cargos. Nenhum botão funcionaria.");
+    return [];
+  }
+
+  const botTopRole = me.roles.highest;
+
+  const candidates = [...guild.roles.cache.values()]
+    .filter((role) => role.position < start.position && role.position > end.position)
+    .sort((a, b) => b.position - a.position);
+
+  const techs = [];
+  const skipped = [];
+
+  for (const role of candidates) {
+    if (role.id === guild.id) continue;
+
+    if (role.managed) {
+      skipped.push(`"${role.name}" é gerenciado por uma integração e não pode ser atribuído`);
+      continue;
+    }
+
+    if (role.comparePositionTo(botTopRole) >= 0) {
+      skipped.push(
+        `"${role.name}" está acima de "${botTopRole.name}" na hierarquia, o bot não consegue atribuí-lo`
+      );
+      continue;
+    }
+
+    techs.push({ role, emoji: resolveEmoji(guild, role) });
+  }
+
+  for (const reason of skipped) {
+    console.warn(`[Techs] ⚠ Botão omitido: ${reason}.`);
+  }
+
+  const withoutEmoji = techs.filter((tech) => !tech.emoji).map((tech) => tech.role.name);
+  if (withoutEmoji.length) {
+    console.warn(
+      `[Techs] ⚠ Sem emoji correspondente no servidor, botão vai sem ícone: ${withoutEmoji.join(", ")}.`
+    );
+  }
+
+  if (techs.length > MAX_TECHS) {
+    console.warn(
+      `[Techs] ⚠ ${techs.length} cargos no bloco, mas o limite do Components V2 é ${MAX_TECHS}. Os excedentes foram cortados.`
+    );
+    techs.length = MAX_TECHS;
+  }
+
+  console.log(
+    `[Techs] ✓ ${techs.length} tech(s) entre "${start.name}" e "${end.name}": ${techs
+      .map((tech) => tech.role.name)
+      .join(", ")}.`
+  );
+
+  return techs;
+}
+
+function createTechsLayoutV2(techs) {
   const components = [];
   const container = new ContainerBuilder().setAccentColor(parseInt(process.env.MAIN_COLOR));
 
@@ -141,16 +196,17 @@ function createTechsLayoutV2() {
     .setDivider(true);
   components.push(separator);
 
-  for (let i = 0; i < TECHS.length; i += 5) {
-    const techGroup = TECHS.slice(i, i + 5);
+  for (let i = 0; i < techs.length; i += 5) {
+    const techGroup = techs.slice(i, i + 5);
     const row = new ActionRowBuilder();
 
-    techGroup.forEach((tech) => {
+    techGroup.forEach(({ role, emoji }) => {
       const button = new ButtonBuilder()
-        .setCustomId(`tech_${tech.id}`)
-        .setLabel(tech.name)
-        .setEmoji(tech.emoji)
+        .setCustomId(`tech_${role.id}`)
+        .setLabel(role.name)
         .setStyle(ButtonStyle.Secondary);
+
+      if (emoji) button.setEmoji(emoji);
 
       row.addComponents(button);
     });
@@ -161,114 +217,188 @@ function createTechsLayoutV2() {
   return components;
 }
 
+/**
+ * O painel é reeditado a cada mudança de cargo, então o banner fica em cache
+ * para não baixar do postimg a cada re-render.
+ */
+async function getBannerAttachment() {
+  if (!bannerBuffer) {
+    console.log("[Techs] Baixando banner uma única vez para cache...");
+    const response = await fetch(BANNER_URL);
+    if (!response.ok) throw new Error(`Falha ao baixar o banner: ${response.status}`);
+    bannerBuffer = Buffer.from(await response.arrayBuffer());
+    console.log(`[Techs] ✓ Banner em cache (${bannerBuffer.length} bytes).`);
+  }
+
+  return new AttachmentBuilder(bannerBuffer, { name: BANNER_NAME });
+}
+
 async function handleTechButtonClick(interaction) {
   const customId = interaction.customId;
   if (!customId.startsWith("tech_")) return;
 
-  const techId = customId.replace("tech_", "");
-  const tech = TECHS.find((t) => t.id === techId);
-  if (!tech) return;
+  const roleId = customId.slice("tech_".length);
 
   try {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   } catch (err) {
     if (err.code === 10062) {
-      console.log(`[Techs] Interação expirada para "${tech.name}", ignorando.`);
+      console.log(`[Techs] Interação expirada para o cargo ${roleId}, ignorando.`);
       return;
     }
     throw err;
   }
 
+  const respond = async (content) => {
+    const container = new ContainerBuilder()
+      .setAccentColor(parseInt(process.env.MAIN_COLOR))
+      .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
+
+    await interaction
+      .editReply({ flags: MessageFlags.IsComponentsV2, components: [container] })
+      .catch(() => { });
+  };
+
+  // Revalida o escopo: o cargo pode ter saído do bloco, perdido a hierarquia ou
+  // sido apagado depois de o painel ter sido renderizado.
+  const tech = resolveTechRoles(interaction.guild).find((item) => item.role.id === roleId);
+
+  if (!tech) {
+    console.warn(`[Techs] ⚠ Clique em cargo fora do bloco de techs (${roleId}). Ignorado.`);
+    await respond("Este botão não está mais disponível. O painel será atualizado em instantes.");
+    return;
+  }
+
   try {
     const member = interaction.member;
-    const hasRole = member.roles.cache.has(tech.roleId);
-    const role = interaction.guild.roles.cache.get(tech.roleId);
+    const hasRole = member.roles.cache.has(tech.role.id);
 
     if (hasRole) {
-      await removeRole(member, tech.roleId);
+      await removeRole(member, tech.role.id);
     } else {
-      await setRole(member, tech.roleId);
+      await setRole(member, tech.role.id);
     }
 
-    const message = hasRole
-      ? `Cargo ${role} removido do seu perfil.`
-      : `Cargo ${role} adicionado ao seu perfil.`;
-    console.log(`[Techs] ✓ "${tech.name}" ${hasRole ? "removido de" : "adicionado a"} ${member.user.tag}.`);
+    console.log(
+      `[Techs] ✓ "${tech.role.name}" ${hasRole ? "removido de" : "adicionado a"} ${member.user.tag}.`
+    );
 
-    const container = new ContainerBuilder()
-      .setAccentColor(parseInt(process.env.MAIN_COLOR))
-      .addTextDisplayComponents(new TextDisplayBuilder().setContent(message));
-
-    await interaction.editReply({
-      flags: MessageFlags.IsComponentsV2,
-      components: [container],
-    });
+    await respond(
+      hasRole
+        ? `Cargo ${tech.role} removido do seu perfil.`
+        : `Cargo ${tech.role} adicionado ao seu perfil.`
+    );
   } catch (error) {
-    console.error(`[Techs] ✗ Erro ao lidar com "${tech.name}" para ${interaction.user.tag}:`, error);
-
-    const container = new ContainerBuilder()
-      .setAccentColor(parseInt(process.env.MAIN_COLOR))
-      .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`Ocorreu um erro ao processar sua ação.`)
-      );
-
-    await interaction.editReply({
-      flags: MessageFlags.IsComponentsV2,
-      components: [container],
-    }).catch(() => { });
+    console.error(`[Techs] ✗ Erro ao lidar com "${tech.role.name}" para ${interaction.user.tag}:`, error);
+    await respond("Ocorreu um erro ao processar sua ação.");
   }
 }
 
-async function sendTechLayoutMessage(client) {
-  try {
-    console.log(`[Techs] Buscando canal ${process.env.TECHS_CHANNEL_ID}...`);
-    const techsChannel = await client.channels.fetch(
-      process.env.TECHS_CHANNEL_ID
-    );
-    console.log(`[Techs] ✓ Canal encontrado: #${techsChannel.name}`);
+async function renderTechsPanel(client) {
+  const techsChannel = await client.channels.fetch(process.env.TECHS_CHANNEL_ID);
+  const guild = techsChannel.guild;
 
+  if (!channelWebhook) {
     console.log("[Techs] Buscando/criando webhook do canal...");
     const webhooks = await techsChannel.fetchWebhooks();
     channelWebhook = webhooks.find((wh) => wh.owner?.id === client.user.id);
+
     if (!channelWebhook) {
       channelWebhook = await techsChannel.createWebhook({ name: client.user.username });
       console.log(`[Techs] ✓ Webhook criado: ${channelWebhook.id}`);
     } else {
       console.log(`[Techs] ✓ Webhook encontrado: ${channelWebhook.id}`);
     }
+  }
 
-    console.log("[Techs] Limpando mensagens anteriores...");
-    const messages = await techsChannel.messages.fetch({ limit: 10 });
-    if (messages.size > 0) {
-      try {
-        await techsChannel.bulkDelete(messages, true);
-        console.log(`[Techs] ✓ ${messages.size} mensagem(ns) deletada(s).`);
-      } catch (err) {
-        console.error("[Techs] ✗ Falha ao limpar mensagens antigas. Enviando painel mesmo assim:", err);
-      }
-    } else {
-      console.log("[Techs] Nenhuma mensagem para limpar.");
+  if (!panelMessageId) {
+    const messages = await techsChannel.messages.fetch({ limit: 50 });
+    const existing = messages.find((message) => message.webhookId === channelWebhook.id);
+    if (existing) {
+      panelMessageId = existing.id;
+      console.log(`[Techs] ✓ Painel anterior encontrado: ${panelMessageId}`);
     }
+  }
 
-    const components = createTechsLayoutV2();
-    const banner = new AttachmentBuilder(BANNER_URL, { name: BANNER_NAME });
+  const techs = resolveTechRoles(guild);
 
-    await channelWebhook.send({
-      username: "Escolha suas tecnologias",
-      avatarURL: "https://i.postimg.cc/d1hG6tLd/lightning-fill.png",
-      components,
-      files: [banner],
-      flags: MessageFlags.IsComponentsV2,
-    });
+  if (!techs.length) {
+    console.error("[Techs] ✗ Nenhuma tech resolvida. O painel não foi alterado.");
+    return;
+  }
 
-    console.log("[Techs] Painel enviado com sucesso!");
+  const components = createTechsLayoutV2(techs);
+
+  if (panelMessageId) {
+    try {
+      await channelWebhook.editMessage(panelMessageId, {
+        components,
+        files: [await getBannerAttachment()],
+        attachments: [],
+        flags: MessageFlags.IsComponentsV2,
+      });
+      console.log("[Techs] ✓ Painel atualizado.");
+      return;
+    } catch (err) {
+      if (err.code !== 10008) throw err;
+      console.log("[Techs] Painel anterior não existe mais. Enviando novo...");
+      panelMessageId = null;
+    }
+  }
+
+  const message = await channelWebhook.send({
+    username: "Escolha suas tecnologias",
+    avatarURL: "https://i.postimg.cc/d1hG6tLd/lightning-fill.png",
+    components,
+    files: [await getBannerAttachment()],
+    flags: MessageFlags.IsComponentsV2,
+  });
+
+  panelMessageId = message.id;
+  console.log(`[Techs] ✓ Painel enviado. ID: ${panelMessageId}`);
+}
+
+async function sendTechLayoutMessage(client) {
+  try {
+    console.log(`[Techs] Buscando canal ${process.env.TECHS_CHANNEL_ID}...`);
+    await renderTechsPanel(client);
   } catch (error) {
-    console.error("[Techs] Erro ao enviar painel:", error);
+    console.error("[Techs] ✗ Erro ao enviar painel:", error);
   }
 }
 
+/**
+ * Re-renderiza o painel quando cargos ou emojis mudam. Mexer em vários cargos
+ * seguidos dispara vários eventos, então o debounce evita reeditar a mensagem
+ * uma vez por alteração.
+ */
+function watchTechRoles(client) {
+  const scheduleRefresh = (reason) => {
+    console.log(
+      `[Techs] Mudança detectada (${reason}). Painel será atualizado em ${REFRESH_DEBOUNCE_MS / 1000}s.`
+    );
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(async () => {
+      try {
+        await renderTechsPanel(client);
+      } catch (error) {
+        console.error("[Techs] ✗ Erro ao atualizar painel:", error);
+      }
+    }, REFRESH_DEBOUNCE_MS);
+  };
+
+  client.on(Events.GuildRoleCreate, (role) => scheduleRefresh(`cargo "${role.name}" criado`));
+  client.on(Events.GuildRoleDelete, (role) => scheduleRefresh(`cargo "${role.name}" apagado`));
+  client.on(Events.GuildRoleUpdate, (_oldRole, newRole) => scheduleRefresh(`cargo "${newRole.name}" alterado`));
+  client.on(Events.GuildEmojiCreate, (emoji) => scheduleRefresh(`emoji "${emoji.name}" criado`));
+  client.on(Events.GuildEmojiDelete, (emoji) => scheduleRefresh(`emoji "${emoji.name}" apagado`));
+  client.on(Events.GuildEmojiUpdate, (_oldEmoji, newEmoji) => scheduleRefresh(`emoji "${newEmoji.name}" alterado`));
+
+  console.log("[Techs] ✓ Observando mudanças de cargos e emojis.");
+}
+
 module.exports = {
-  TECHS,
   handleTechButtonClick,
   sendTechLayoutMessage,
+  watchTechRoles,
 };
