@@ -3,3 +3,7 @@
 test-self.js
 /.claude
 migrateGithubIds.js
+
+# exports do banco e scripts de migracao: contem dados de membros
+*-export.json
+importGaleria.js
