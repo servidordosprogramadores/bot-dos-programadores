@@ -8,6 +8,7 @@ const {
 const {
   handleColorSelectClick,
   sendColorEmbed,
+  watchColorRoles,
 } = require("./src/colors/colors");
 const { sendSupportEmbed } = require("./src/support/support");
 const { handleSupportInteraction } = require("./src/support/resolve");
@@ -43,6 +44,7 @@ client.once(Events.ClientReady, async (readyClient) => {
     await sendTechLayoutMessage(readyClient);
     watchTechRoles(readyClient);
     await sendColorEmbed(readyClient);
+    watchColorRoles(readyClient);
     await sendSupportEmbed(readyClient);
     await sendEmbassadorPanel(readyClient);
     await sendGithubPanel(readyClient);

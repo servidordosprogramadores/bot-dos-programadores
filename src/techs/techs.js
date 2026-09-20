@@ -8,17 +8,16 @@ const {
   SeparatorSpacingSize,
   SeparatorBuilder,
   MediaGalleryBuilder,
-  PermissionFlagsBits,
-  Events,
 } = require("discord.js");
 const { setRole } = require("./setRole");
 const { removeRole } = require("./removeRole");
 const { getPanelBanner, bannerReference } = require("../utils/panelBanner");
+const { resolveRoleBlock } = require("../utils/roleBlock");
+const { watchRoleChanges } = require("../utils/roleWatcher");
 require("dotenv").config();
 
 let channelWebhook = null;
 let panelMessageId = null;
-let refreshTimer = null;
 
 const BANNER_URL = "https://i.postimg.cc/XJ9cgtR7/PROGRAMADORES5.png";
 const BANNER_NAME = "techs-banner.png";
@@ -27,7 +26,6 @@ const BANNER_NAME = "techs-banner.png";
 // fixos (container, media gallery, 3 blocos de texto e o separador) e cada grupo
 // de 5 botões custa 1 action row, então 6 + ceil(n / 5) + n <= 40 dá n = 28.
 const MAX_TECHS = 28;
-const REFRESH_DEBOUNCE_MS = 5000;
 
 /**
  * Nome de emoji no Discord só aceita [a-z0-9_], então o cargo "C++" nunca casa
@@ -74,18 +72,6 @@ function resolveEmoji(guild, role) {
   return null;
 }
 
-function logRoleReference(guild) {
-  const roles = [...guild.roles.cache.values()]
-    .filter((role) => role.id !== guild.id)
-    .sort((a, b) => b.position - a.position)
-    .slice(0, 40);
-
-  console.log("[Techs] Cargos do servidor, de cima para baixo, para configurar as variáveis:");
-  for (const role of roles) {
-    console.log(`[Techs]   position=${String(role.position).padStart(3)} id=${role.id} "${role.name}"`);
-  }
-}
-
 /**
  * Quando um cargo fica sem emoji, o problema quase sempre é o nome do emoji no
  * servidor ser diferente do nome do cargo. Mostrar os dois lados já normalizados
@@ -114,97 +100,25 @@ function logEmojiReference(guild, missingRoleNames) {
   }
 }
 
-/**
- * A lista de techs é todo cargo posicionado entre os dois cargos separadores.
- * Nada vem de array fixo: criar, renomear, reordenar ou apagar um cargo no
- * Discord já muda o painel.
- */
 function resolveTechRoles(guild) {
-  const startId = process.env.TECHS_ROLE_START_ID;
-  const endId = process.env.TECHS_ROLE_END_ID;
+  const roles = resolveRoleBlock(guild, {
+    label: "Techs",
+    startId: process.env.TECHS_ROLE_START_ID,
+    endId: process.env.TECHS_ROLE_END_ID,
+    startVar: "TECHS_ROLE_START_ID",
+    endVar: "TECHS_ROLE_END_ID",
+    max: MAX_TECHS,
+  });
 
-  if (!startId || !endId) {
-    console.error("[Techs] ✗ TECHS_ROLE_START_ID e/ou TECHS_ROLE_END_ID não configurados.");
-    logRoleReference(guild);
-    return [];
-  }
-
-  const start = guild.roles.cache.get(startId);
-  const end = guild.roles.cache.get(endId);
-
-  if (!start || !end) {
-    console.error(
-      `[Techs] ✗ Cargo separador não encontrado (início: ${start ? "ok" : startId}, fim: ${end ? "ok" : endId}).`
-    );
-    logRoleReference(guild);
-    return [];
-  }
-
-  if (start.position <= end.position) {
-    console.error(
-      `[Techs] ✗ Separadores invertidos: "${start.name}" (position ${start.position}) precisa estar acima de "${end.name}" (position ${end.position}).`
-    );
-    return [];
-  }
-
-  const me = guild.members.me;
-
-  if (!me.permissions.has(PermissionFlagsBits.ManageRoles)) {
-    console.error("[Techs] ✗ O bot não tem a permissão Gerenciar Cargos. Nenhum botão funcionaria.");
-    return [];
-  }
-
-  const botTopRole = me.roles.highest;
-
-  const candidates = [...guild.roles.cache.values()]
-    .filter((role) => role.position < start.position && role.position > end.position)
-    .sort((a, b) => b.position - a.position);
-
-  const techs = [];
-  const skipped = [];
-
-  for (const role of candidates) {
-    if (role.id === guild.id) continue;
-
-    if (role.managed) {
-      skipped.push(`"${role.name}" é gerenciado por uma integração e não pode ser atribuído`);
-      continue;
-    }
-
-    if (role.comparePositionTo(botTopRole) >= 0) {
-      skipped.push(
-        `"${role.name}" está acima de "${botTopRole.name}" na hierarquia, o bot não consegue atribuí-lo`
-      );
-      continue;
-    }
-
-    techs.push({ role, emoji: resolveEmoji(guild, role) });
-  }
-
-  for (const reason of skipped) {
-    console.warn(`[Techs] ⚠ Botão omitido: ${reason}.`);
-  }
+  const techs = roles.map((role) => ({ role, emoji: resolveEmoji(guild, role) }));
 
   const withoutEmoji = techs.filter((tech) => !tech.emoji).map((tech) => tech.role.name);
   if (withoutEmoji.length) {
     console.warn(
-      `[Techs] ⚠ Sem emoji correspondente no servidor, botão vai sem ícone: ${withoutEmoji.join(", ")}.`
+      `[Techs] ⚠ Sem emoji correspondente, botão vai sem ícone: ${withoutEmoji.join(", ")}.`
     );
     logEmojiReference(guild, withoutEmoji);
   }
-
-  if (techs.length > MAX_TECHS) {
-    console.warn(
-      `[Techs] ⚠ ${techs.length} cargos no bloco, mas o limite do Components V2 é ${MAX_TECHS}. Os excedentes foram cortados.`
-    );
-    techs.length = MAX_TECHS;
-  }
-
-  console.log(
-    `[Techs] ✓ ${techs.length} tech(s) entre "${start.name}" e "${end.name}": ${techs
-      .map((tech) => tech.role.name)
-      .join(", ")}.`
-  );
 
   return techs;
 }
@@ -399,28 +313,7 @@ async function sendTechLayoutMessage(client) {
  * uma vez por alteração.
  */
 function watchTechRoles(client) {
-  const scheduleRefresh = (reason) => {
-    console.log(
-      `[Techs] Mudança detectada (${reason}). Painel será atualizado em ${REFRESH_DEBOUNCE_MS / 1000}s.`
-    );
-    clearTimeout(refreshTimer);
-    refreshTimer = setTimeout(async () => {
-      try {
-        await renderTechsPanel(client);
-      } catch (error) {
-        console.error("[Techs] ✗ Erro ao atualizar painel:", error);
-      }
-    }, REFRESH_DEBOUNCE_MS);
-  };
-
-  client.on(Events.GuildRoleCreate, (role) => scheduleRefresh(`cargo "${role.name}" criado`));
-  client.on(Events.GuildRoleDelete, (role) => scheduleRefresh(`cargo "${role.name}" apagado`));
-  client.on(Events.GuildRoleUpdate, (_oldRole, newRole) => scheduleRefresh(`cargo "${newRole.name}" alterado`));
-  client.on(Events.GuildEmojiCreate, (emoji) => scheduleRefresh(`emoji "${emoji.name}" criado`));
-  client.on(Events.GuildEmojiDelete, (emoji) => scheduleRefresh(`emoji "${emoji.name}" apagado`));
-  client.on(Events.GuildEmojiUpdate, (_oldEmoji, newEmoji) => scheduleRefresh(`emoji "${newEmoji.name}" alterado`));
-
-  console.log("[Techs] ✓ Observando mudanças de cargos e emojis.");
+  watchRoleChanges(client, "Techs", renderTechsPanel);
 }
 
 module.exports = {
