@@ -44,14 +44,28 @@ function normalizeName(value) {
 
 /**
  * O ícone do cargo (role.icon) não serve para botão — botão só aceita emoji.
- * Então o ícone vem do emoji customizado do servidor cujo nome casa com o cargo,
- * com role.unicodeEmoji como segunda opção.
+ * Então o ícone vem do emoji customizado cujo nome casa com o cargo, com
+ * role.unicodeEmoji como segunda opção.
+ *
+ * A busca não para no servidor principal: o bot pode usar emoji de qualquer
+ * servidor em que esteja, e é comum hospedá-los num servidor só de emojis
+ * quando os slots do principal acabam.
  */
-function resolveEmoji(guild, role) {
-  const key = normalizeName(role.name);
-  const emoji = guild.emojis.cache.find((item) => normalizeName(item.name) === key);
+function findEmoji(guild, key) {
+  const local = guild.emojis.cache.find((item) => normalizeName(item.name) === key);
+  if (local) return { emoji: local, source: "este servidor" };
 
-  if (emoji) {
+  const external = guild.client.emojis.cache.find((item) => normalizeName(item.name) === key);
+  if (external) return { emoji: external, source: `servidor "${external.guild?.name ?? "desconhecido"}"` };
+
+  return null;
+}
+
+function resolveEmoji(guild, role) {
+  const found = findEmoji(guild, normalizeName(role.name));
+
+  if (found) {
+    const { emoji } = found;
     return { id: emoji.id, name: emoji.name, animated: emoji.animated };
   }
 
@@ -69,6 +83,34 @@ function logRoleReference(guild) {
   console.log("[Techs] Cargos do servidor, de cima para baixo, para configurar as variáveis:");
   for (const role of roles) {
     console.log(`[Techs]   position=${String(role.position).padStart(3)} id=${role.id} "${role.name}"`);
+  }
+}
+
+/**
+ * Quando um cargo fica sem emoji, o problema quase sempre é o nome do emoji no
+ * servidor ser diferente do nome do cargo. Mostrar os dois lados já normalizados
+ * deixa claro o que renomear — e renomear o emoji no Discord resolve sem deploy.
+ */
+function logEmojiReference(guild, missingRoleNames) {
+  console.log("[Techs] Cargos sem emoji, com o nome que o bot procura:");
+  for (const roleName of missingRoleNames) {
+    console.log(
+      `[Techs]   cargo "${roleName}" -> procura um emoji que normalize para "${normalizeName(roleName)}"`
+    );
+  }
+
+  const visible = [...guild.client.emojis.cache.values()];
+  console.log(
+    `[Techs] Emojis visíveis ao bot: ${visible.length} (${guild.emojis.cache.size} neste servidor).`
+  );
+
+  for (const emoji of visible.slice(0, 60)) {
+    const where = emoji.guild?.id === guild.id ? "este servidor" : `servidor "${emoji.guild?.name ?? "?"}"`;
+    console.log(`[Techs]   :${emoji.name}: -> "${normalizeName(emoji.name)}" (${where})`);
+  }
+
+  if (visible.length > 60) {
+    console.log(`[Techs]   ... e mais ${visible.length - 60}.`);
   }
 }
 
@@ -148,6 +190,7 @@ function resolveTechRoles(guild) {
     console.warn(
       `[Techs] ⚠ Sem emoji correspondente no servidor, botão vai sem ícone: ${withoutEmoji.join(", ")}.`
     );
+    logEmojiReference(guild, withoutEmoji);
   }
 
   if (techs.length > MAX_TECHS) {
