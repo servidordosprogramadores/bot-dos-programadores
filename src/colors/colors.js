@@ -27,6 +27,16 @@ const MAX_COLORS = 24;
 
 const REMOVE_OPTION_VALUE = "remove_color_option";
 
+/**
+ * Hoje é um bloco só, com todas as cores liberadas, e a ordem do painel é a
+ * ordem da hierarquia: para reordenar, basta arrastar os cargos no Discord.
+ *
+ * O painel já foi dividido em três grupos — padrões, especiais (as cores do
+ * Discord: Bravery, Balance, Brilliance e Discord) e premium, essa última
+ * exigindo um cargo de permissão. Se um dia os grupos voltarem, a forma é
+ * acrescentar cargos separadores dentro do bloco e resolver um intervalo por
+ * grupo, em vez de reintroduzir a lista fixa em código.
+ */
 function resolveColorRoles(guild) {
   return resolveRoleBlock(guild, {
     label: "Colors",
