@@ -1,56 +1,14 @@
 const {
   ContainerBuilder,
   TextDisplayBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   MessageFlags,
 } = require("discord.js");
 const { connectDB, GithubModel } = require("./model");
+const { createAuthUrl, isConfigured } = require("./oauth");
 require("dotenv").config();
-
-async function getUserProfile(userId) {
-  try {
-    const response = await fetch(
-      `https://discord.com/api/v10/users/${userId}/profile?with_mutual_guilds=false`,
-      {
-        method: "GET",
-        headers: { Authorization: process.env.AUTH_TOKEN },
-      }
-    );
-
-    if (!response.ok) {
-      const body = await response.text();
-      console.error(`[GitHub] Erro ao buscar perfil: ${response.status} ${response.statusText} — ${body}`);
-      return null;
-    }
-
-    const data = await response.json();
-    console.log(`[GitHub] Resposta do perfil Discord para ${userId}: connected_accounts=${JSON.stringify((data.connected_accounts || []).map((c) => ({ type: c.type, name: c.name })))}`);
-    return data;
-  } catch (error) {
-    console.error("[GitHub] Falha na requisição de perfil:", error);
-    return null;
-  }
-}
-
-async function getGithubInfo(username) {
-  try {
-    const response = await fetch(`https://api.github.com/users/${username}`, {
-      headers: {
-        Authorization: `token ${process.env.GITHUB_TOKEN}`,
-        Accept: "application/vnd.github.v3+json",
-      },
-    });
-
-    if (!response.ok) {
-      console.error(`[GitHub] Erro ao buscar info do GitHub: ${response.status}`);
-      return null;
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("[GitHub] Falha na requisição da API do GitHub:", error);
-    return null;
-  }
-}
 
 function replyContainer(text) {
   return new ContainerBuilder()
@@ -86,70 +44,32 @@ async function handleAddGithubButton(interaction) {
       return;
     }
 
-    console.log(`[GitHub] Buscando perfil do Discord para ${userId}...`);
-    const profile = await getUserProfile(userId);
-    if (!profile) {
-      console.error(`[GitHub] ✗ Perfil não retornado para ${userId}.`);
+    if (!isConfigured()) {
+      console.error("[GitHub] ✗ OAuth não configurado. Não é possível vincular.");
       await interaction.editReply({
         flags: MessageFlags.IsComponentsV2,
-        components: [replyContainer("Ocorreu um erro ao processar sua verificação. Tente novamente mais tarde.")],
+        components: [replyContainer("A vinculação está indisponível no momento. Avise a moderação.")],
       });
       return;
     }
 
-    const connections = profile.connected_accounts || [];
-    console.log(`[GitHub] Conexões encontradas para ${userId}: ${connections.map((c) => c.type).join(", ") || "nenhuma"}`);
-
-    const githubConnection = connections.find((c) => c.type === "github");
-
-    if (!githubConnection) {
-      console.log(`[GitHub] Nenhuma conexão com GitHub encontrada para ${userId}.`);
-      await interaction.editReply({
-        flags: MessageFlags.IsComponentsV2,
-        components: [replyContainer("Você não tem um GitHub vinculado ao seu perfil do Discord.")],
-      });
-      return;
-    }
-
-    const githubUsername = githubConnection.name;
-    console.log(`[GitHub] GitHub encontrado para ${userId}: @${githubUsername}`);
-
-    console.log(`[GitHub] Buscando informações da API do GitHub para @${githubUsername}...`);
-    const githubInfo = await getGithubInfo(githubUsername);
-    if (!githubInfo) {
-      console.error(`[GitHub] ✗ Falha ao buscar info do GitHub para @${githubUsername}.`);
-      await interaction.editReply({
-        flags: MessageFlags.IsComponentsV2,
-        components: [replyContainer("Ocorreu um erro ao processar sua verificação. Tente novamente mais tarde.")],
-      });
-      return;
-    }
-
-    console.log(`[GitHub] Info recebida para @${githubUsername}: ${githubInfo.public_repos} repos, ${githubInfo.followers} seguidores.`);
-
-    await GithubModel.create({
-      discordId: userId,
-      discordUsername: interaction.user.username,
-      discordAvatar: interaction.user.displayAvatarURL({ extension: "png", size: 256 }),
-      githubId: githubInfo.id,
-      githubUsername,
-      profileUrl: githubInfo.html_url,
-      name: githubInfo.name,
-      bio: githubInfo.bio,
-      followers: githubInfo.followers,
-      following: githubInfo.following,
-      company: githubInfo.company,
-      blog: githubInfo.blog,
-      publicRepos: githubInfo.public_repos,
-      githubCreatedAt: new Date(githubInfo.created_at),
-      updatedAt: new Date(),
-    });
-
-    console.log(`[GitHub] ✓ GitHub @${githubUsername} registrado para ${userId}.`);
+    // Quem autoriza é o próprio usuário: o bot nunca lê a conta de ninguém.
+    const authUrl = createAuthUrl(interaction.user);
+    console.log(`[GitHub] Link de autorização gerado para ${userId}.`);
 
     await interaction.editReply({
       flags: MessageFlags.IsComponentsV2,
-      components: [replyContainer(`Seu GitHub **@${githubUsername}** foi registrado e deve aparecer no site em instantes.`)],
+      components: [
+        replyContainer(
+          "Clique no botão abaixo para autorizar pelo Discord. Vamos ler **apenas** a sua lista de conexões, para descobrir o seu GitHub.\n-# O link vale por 10 minutos e só funciona para você."
+        ),
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setStyle(ButtonStyle.Link)
+            .setLabel("Autorizar e vincular GitHub")
+            .setURL(authUrl)
+        ),
+      ],
     });
 
   } catch (error) {

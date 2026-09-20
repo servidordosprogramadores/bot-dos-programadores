@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const { connectDB, GithubModel } = require("../model");
+const { registerOAuthRoutes } = require("../oauth");
 require("dotenv").config();
 
 const app = express();
@@ -35,9 +36,11 @@ app.get("/github", async (req, res) => {
   }
 });
 
+registerOAuthRoutes(app);
+
 function startApi() {
   app.listen(PORT, () => {
-    console.log(`[API] ✓ Rodando na porta ${PORT}. Rota: GET /github`);
+    console.log(`[API] ✓ Rodando na porta ${PORT}. Rotas: GET /github, GET /auth/github/callback`);
   });
 }
 

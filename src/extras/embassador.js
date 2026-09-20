@@ -27,20 +27,32 @@ const cooldowns = new Map();
 
 let channelWebhook = null;
 
-async function getUserProfile(userId) {
+/**
+ * A tag do servidor vem de primary_guild no objeto User, que o token de bot já
+ * enxerga — o endpoint /profile usado antes exigia token de conta de usuário.
+ * O campo se chamava "clan" e foi renomeado; os subcampos são os mesmos.
+ */
+async function getPrimaryGuild(userId) {
   try {
-    const response = await fetch(`https://discord.com/api/v10/users/${userId}/profile?with_mutual_guilds=false`, {
+    const response = await fetch(`https://discord.com/api/v10/users/${userId}`, {
       method: "GET",
-      headers: { Authorization: process.env.AUTH_TOKEN },
+      headers: { Authorization: `Bot ${process.env.BOT_TOKEN}` },
     });
 
     if (!response.ok) {
-      console.error(`[Embassador] Erro ao buscar perfil: ${response.status} ${response.statusText}`);
+      console.error(`[Embassador] Erro ao buscar usuário: ${response.status} ${response.statusText}`);
       return null;
     }
 
     const data = await response.json();
-    return data;
+
+    if (!("primary_guild" in data)) {
+      console.warn(
+        `[Embassador] ⚠ primary_guild ausente na resposta para ${userId}. Campos recebidos: ${Object.keys(data).join(", ")}.`
+      );
+    }
+
+    return data.primary_guild ?? null;
   } catch (error) {
     console.error("[Embassador] Falha na requisição de perfil:", error);
     return null;
@@ -108,24 +120,15 @@ async function handleEmbassadorButton(interaction) {
       return;
     }
 
-    console.log(`[Embassador] Buscando perfil via API para ${userId}...`);
-    const profile = await getUserProfile(userId);
+    console.log(`[Embassador] Verificando a tag do servidor para ${userId}...`);
+    const primaryGuild = await getPrimaryGuild(userId);
 
-    if (!profile) {
-      console.log(`[Embassador] Perfil não retornado para ${userId}. Respondendo com erro...`);
-      await interaction.editReply({
-        flags: MessageFlags.IsComponentsV2,
-        components: [replyContainer("Não foi possível verificar seu perfil. Tente novamente mais tarde.")],
-      });
-      return;
-    }
-
-    const clan = profile?.user?.clan;
-
+    // primary_guild vem null quando o usuário não usa tag nenhuma, o que é uma
+    // resposta legítima — diferente de falha na requisição.
     const hasTag =
-      clan?.identity_guild_id === GUILD_ID &&
-      clan?.identity_enabled === true &&
-      clan?.tag === "CODE";
+      primaryGuild?.identity_guild_id === GUILD_ID &&
+      primaryGuild?.identity_enabled === true &&
+      primaryGuild?.tag === "CODE";
 
     if (!hasTag) {
       await interaction.editReply({
