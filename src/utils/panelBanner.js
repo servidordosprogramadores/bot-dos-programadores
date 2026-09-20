@@ -70,10 +70,8 @@ async function loadFromUrl(url, name) {
  * canal vazio, que é no que dá deixar o erro subir.
  */
 async function getPanelBanner(url, name) {
-  if (cache.has(name)) {
-    const cached = cache.get(name);
-    return cached ? new AttachmentBuilder(cached, { name }) : null;
-  }
+  const cached = cache.get(name);
+  if (cached) return new AttachmentBuilder(cached, { name });
 
   let buffer = await loadFromDisk(name);
 
@@ -84,11 +82,13 @@ async function getPanelBanner(url, name) {
     if (buffer) {
       console.log(`[Banner] ✓ ${name} baixado (${buffer.length} bytes). Commite-o em assets/ para não depender da rede.`);
     } else {
-      console.error(`[Banner] ✗ ${name} indisponível. O painel será enviado sem banner.`);
+      console.error(`[Banner] ✗ ${name} indisponível agora. O painel vai sem banner e a próxima renderização tenta de novo.`);
     }
   }
 
-  cache.set(name, buffer ?? null);
+  // Só o sucesso entra no cache: guardar a falha deixaria o painel sem banner
+  // até o próximo restart, mesmo que o host volte minutos depois.
+  if (buffer) cache.set(name, buffer);
 
   return buffer ? new AttachmentBuilder(buffer, { name }) : null;
 }
