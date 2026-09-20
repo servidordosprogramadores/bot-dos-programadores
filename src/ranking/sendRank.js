@@ -50,16 +50,23 @@ async function sendRankMessage(client, textRank, voiceRank) {
     }
   }
 
+  const banner = await getPanelBanner(BANNER_URL, BANNER_NAME);
+
+  const rankContainer = new ContainerBuilder()
+    .setAccentColor(parseInt(process.env.MAIN_COLOR));
+
+  // Sem o banner disponível o ranking vai só com texto: referenciar um
+  // attachment:// que não foi enviado faria o Discord rejeitar a mensagem.
+  if (banner) {
+    rankContainer.addMediaGalleryComponents(
+      new MediaGalleryBuilder().addItems(
+        new MediaGalleryItemBuilder().setURL(bannerReference(BANNER_NAME)),
+      ),
+    );
+  }
+
   const components = [
-    new ContainerBuilder()
-      .setAccentColor(parseInt(process.env.MAIN_COLOR))
-      .addMediaGalleryComponents(
-        new MediaGalleryBuilder()
-          .addItems(
-            new MediaGalleryItemBuilder()
-              .setURL(bannerReference(BANNER_NAME)),
-          ),
-      )
+    rankContainer
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent("# Ranking dos membros mais ativos"),
       )
@@ -100,7 +107,7 @@ async function sendRankMessage(client, textRank, voiceRank) {
     username: "Ranking do servidor",
     avatarURL: "https://i.postimg.cc/4Nt4QjZW/ranking-fill.png",
     components,
-    files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+    files: banner ? [banner] : [],
     flags: MessageFlags.IsComponentsV2,
     allowedMentions: { parse: [] },
   };
@@ -110,7 +117,7 @@ async function sendRankMessage(client, textRank, voiceRank) {
     try {
       await rankWebhook.editMessage(rankMessageId, {
         components,
-        files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+        files: banner ? [banner] : [],
         attachments: [],
         flags: MessageFlags.IsComponentsV2,
         allowedMentions: { parse: [] },

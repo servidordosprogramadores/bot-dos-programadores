@@ -48,16 +48,23 @@ async function sendGithubPanel(client) {
       }
     }
 
+    const banner = await getPanelBanner(BANNER_URL, BANNER_NAME);
+
+    const panelContainer = new ContainerBuilder()
+      .setAccentColor(parseInt(process.env.MAIN_COLOR));
+
+    // Sem o banner disponível o painel vai só com texto: referenciar um
+    // attachment:// que não foi enviado faria o Discord rejeitar a mensagem.
+    if (banner) {
+      panelContainer.addMediaGalleryComponents(
+        new MediaGalleryBuilder().addItems(
+          new MediaGalleryItemBuilder().setURL(bannerReference(BANNER_NAME)),
+        ),
+      );
+    }
+
     const components = [
-      new ContainerBuilder()
-        .setAccentColor(parseInt(process.env.MAIN_COLOR))
-        .addMediaGalleryComponents(
-          new MediaGalleryBuilder()
-            .addItems(
-              new MediaGalleryItemBuilder()
-                .setURL(bannerReference(BANNER_NAME)),
-            ),
-        )
+      panelContainer
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent("# Galeria de GitHubs dos membros"),
         )
@@ -98,7 +105,7 @@ async function sendGithubPanel(client) {
       try {
         await channelWebhook.editMessage(panelMessageId, {
           components,
-          files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+          files: banner ? [banner] : [],
           attachments: [],
           flags: MessageFlags.IsComponentsV2,
           allowedMentions: { parse: [] },
@@ -116,7 +123,7 @@ async function sendGithubPanel(client) {
       username: "Galeria de GitHubs",
       avatarURL: "https://i.postimg.cc/zG379qKR/github-logo-fill.png",
       components,
-      files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+      files: banner ? [banner] : [],
       flags: MessageFlags.IsComponentsV2,
       allowedMentions: { parse: [] },
     });

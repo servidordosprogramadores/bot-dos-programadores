@@ -181,14 +181,22 @@ async function sendEmbassadorPanel(client) {
       }
     }
 
+    const banner = await getPanelBanner(BANNER_URL, BANNER_NAME);
+
+    const panelContainer = new ContainerBuilder().setAccentColor(1722367);
+
+    // Sem o banner disponível o painel vai só com texto: referenciar um
+    // attachment:// que não foi enviado faria o Discord rejeitar a mensagem.
+    if (banner) {
+      panelContainer.addMediaGalleryComponents(
+        new MediaGalleryBuilder().addItems(
+          new MediaGalleryItemBuilder().setURL(bannerReference(BANNER_NAME)),
+        ),
+      );
+    }
+
     const components = [
-      new ContainerBuilder()
-        .setAccentColor(1722367)
-        .addMediaGalleryComponents(
-          new MediaGalleryBuilder().addItems(
-            new MediaGalleryItemBuilder().setURL(bannerReference(BANNER_NAME)),
-          ),
-        )
+      panelContainer
         .addTextDisplayComponents(new TextDisplayBuilder().setContent("# Torne-se um embaixador"))
         .addTextDisplayComponents(new TextDisplayBuilder().setContent("Aqui no **Servidor dos Programadores** temos um sistema de **embaixadores**, membros que ajudam a divulgar e fortalecer nossa comunidade."))
         .addTextDisplayComponents(new TextDisplayBuilder().setContent("Para ganhar o cargo <@&1409756076794187846> você deve ser membro do servidor há **pelo menos 1 mês** e utilizar a **tag do servidor** no seu perfil."))
@@ -213,7 +221,7 @@ async function sendEmbassadorPanel(client) {
       try {
         await channelWebhook.editMessage(panelMessageId, {
           components,
-          files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+          files: banner ? [banner] : [],
           attachments: [],
           flags: MessageFlags.IsComponentsV2,
           allowedMentions: { parse: [] },
@@ -231,7 +239,7 @@ async function sendEmbassadorPanel(client) {
       username: "Painel de embaixador",
       avatarURL: "https://i.postimg.cc/dtSYgych/leaf-fill.png",
       components,
-      files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+      files: banner ? [banner] : [],
       flags: MessageFlags.IsComponentsV2,
       allowedMentions: { parse: [] },
     });

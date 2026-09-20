@@ -166,17 +166,9 @@ function resolveTechRoles(guild) {
   return techs;
 }
 
-function createTechsLayoutV2(techs) {
+function createTechsLayoutV2(techs, hasBanner) {
   const components = [];
   const container = new ContainerBuilder().setAccentColor(parseInt(process.env.MAIN_COLOR));
-
-  const media = new MediaGalleryBuilder().addItems([
-    {
-      media: {
-        url: bannerReference(BANNER_NAME),
-      },
-    },
-  ]);
 
   const text1 = new TextDisplayBuilder().setContent("# Painel de Tecnologias");
   const text2 = new TextDisplayBuilder().setContent(
@@ -186,7 +178,14 @@ function createTechsLayoutV2(techs) {
     "Cada botão **adiciona** ou **remove** o cargo referente à tecnologia escolhida.\nOs cargos aparecem no seu perfil e destacam suas preferências.\n"
   );
 
-  container.addMediaGalleryComponents(media);
+  // Sem o banner disponível o painel vai só com texto: referenciar um
+  // attachment:// que não foi enviado faria o Discord rejeitar a mensagem.
+  if (hasBanner) {
+    container.addMediaGalleryComponents(
+      new MediaGalleryBuilder().addItems([{ media: { url: bannerReference(BANNER_NAME) } }])
+    );
+  }
+
   container.addTextDisplayComponents(text1, text2, text3);
   components.push(container);
 
@@ -310,13 +309,14 @@ async function renderTechsPanel(client) {
     return;
   }
 
-  const components = createTechsLayoutV2(techs);
+  const banner = await getPanelBanner(BANNER_URL, BANNER_NAME);
+  const components = createTechsLayoutV2(techs, Boolean(banner));
 
   if (panelMessageId) {
     try {
       await channelWebhook.editMessage(panelMessageId, {
         components,
-        files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+        files: banner ? [banner] : [],
         attachments: [],
         flags: MessageFlags.IsComponentsV2,
       });
@@ -333,7 +333,7 @@ async function renderTechsPanel(client) {
     username: "Escolha suas tecnologias",
     avatarURL: "https://i.postimg.cc/d1hG6tLd/lightning-fill.png",
     components,
-    files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+    files: banner ? [banner] : [],
     flags: MessageFlags.IsComponentsV2,
   });
 

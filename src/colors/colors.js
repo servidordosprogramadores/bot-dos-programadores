@@ -178,17 +178,9 @@ function createColorSelectMenuV2() {
   return new ActionRowBuilder().addComponents(selectMenu);
 }
 
-function createColorsContainerV2() {
+function createColorsContainerV2(hasBanner) {
   const components = [];
   const container = new ContainerBuilder().setAccentColor(parseInt(process.env.MAIN_COLOR));
-
-  const media = new MediaGalleryBuilder().addItems([
-    {
-      media: {
-        url: bannerReference(BANNER_NAME),
-      },
-    },
-  ]);
 
   const text1 = new TextDisplayBuilder().setContent("# Painel de Cores");
   const text2 = new TextDisplayBuilder().setContent(
@@ -210,7 +202,14 @@ function createColorsContainerV2() {
     `### Cores premium:\n- <@&1381754982876971008>, <@&1381755628883677184>, <@&1381755715584004227>, <@&1381755759187988591>, <@&1381755389485383770>, <@&1381755107753988146>, <@&1381755913987162163>.`
   );
 
-  container.addMediaGalleryComponents(media);
+  // Sem o banner disponível o painel vai só com texto: referenciar um
+  // attachment:// que não foi enviado faria o Discord rejeitar a mensagem.
+  if (hasBanner) {
+    container.addMediaGalleryComponents(
+      new MediaGalleryBuilder().addItems([{ media: { url: bannerReference(BANNER_NAME) } }])
+    );
+  }
+
   container.addTextDisplayComponents(text1, text2, text3, text4, text5, text6);
   components.push(container);
 
@@ -398,13 +397,14 @@ async function sendColorEmbed(client) {
       }
     }
 
-    const components = createColorsContainerV2();
+    const banner = await getPanelBanner(BANNER_URL, BANNER_NAME);
+    const components = createColorsContainerV2(Boolean(banner));
 
     if (panelMessageId) {
       try {
         await channelWebhook.editMessage(panelMessageId, {
           components,
-          files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+          files: banner ? [banner] : [],
           attachments: [],
           flags: MessageFlags.IsComponentsV2,
           allowedMentions: { parse: [] },
@@ -422,7 +422,7 @@ async function sendColorEmbed(client) {
       username: "Escolha sua cor",
       avatarURL: "https://i.postimg.cc/jC09KFp5/palette-fill.png",
       components,
-      files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+      files: banner ? [banner] : [],
       flags: MessageFlags.IsComponentsV2,
       allowedMentions: { parse: [] },
     });

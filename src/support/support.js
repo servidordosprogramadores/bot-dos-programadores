@@ -50,14 +50,23 @@ async function sendSupportEmbed(client) {
       }
     }
 
-    const components = [
-      new ContainerBuilder()
-        .setAccentColor(parseInt(process.env.MAIN_COLOR))
-        .addMediaGalleryComponents(
-          new MediaGalleryBuilder().addItems(
-            new MediaGalleryItemBuilder().setURL(bannerReference(BANNER_NAME))
-          )
+    const banner = await getPanelBanner(BANNER_URL, BANNER_NAME);
+
+    const panelContainer = new ContainerBuilder()
+      .setAccentColor(parseInt(process.env.MAIN_COLOR));
+
+    // Sem o banner disponível o painel vai só com texto: referenciar um
+    // attachment:// que não foi enviado faria o Discord rejeitar a mensagem.
+    if (banner) {
+      panelContainer.addMediaGalleryComponents(
+        new MediaGalleryBuilder().addItems(
+          new MediaGalleryItemBuilder().setURL(bannerReference(BANNER_NAME))
         )
+      );
+    }
+
+    const components = [
+      panelContainer
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent("# Painel de Suporte")
         )
@@ -129,7 +138,7 @@ async function sendSupportEmbed(client) {
       try {
         await webhook.editMessage(panelMessageId, {
           components,
-          files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+          files: banner ? [banner] : [],
           attachments: [],
           flags: MessageFlags.IsComponentsV2,
         });
@@ -147,7 +156,7 @@ async function sendSupportEmbed(client) {
       avatarURL: "https://i.postimg.cc/4xygFMRb/phone-fill.png",
       flags: MessageFlags.IsComponentsV2,
       components: components,
-      files: [await getPanelBanner(BANNER_URL, BANNER_NAME)],
+      files: banner ? [banner] : [],
     });
 
     panelMessageId = message.id;
