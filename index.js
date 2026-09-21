@@ -32,8 +32,33 @@ const client = new Client({
   ],
 });
 
+/**
+ * Identifica de qual aplicação veio o token que acabou de conectar. Serve para
+ * conferir, sem depender de memória, que o bot no ar é o desta conta/Team — e
+ * não uma aplicação antiga cujo token tenha vazado.
+ */
+async function logIdentity(readyClient) {
+  try {
+    const application = await readyClient.application.fetch();
+    const owner = application.owner;
+    const ownerLabel = owner?.name
+      ? `Team "${owner.name}" (id ${owner.id})`
+      : owner
+        ? `usuário ${owner.tag ?? owner.username} (id ${owner.id})`
+        : "desconhecido";
+
+    console.log(`[Bot] Usuário do bot : ${readyClient.user.tag} (id ${readyClient.user.id})`);
+    console.log(`[Bot] Aplicação      : "${application.name}" (id ${application.id})`);
+    console.log(`[Bot] Dono           : ${ownerLabel}`);
+    console.log(`[Bot] Servidores     : ${readyClient.guilds.cache.size}`);
+  } catch (error) {
+    console.error("[Bot] ✗ Não foi possível identificar a aplicação:", error.message);
+  }
+}
+
 client.once(Events.ClientReady, async (readyClient) => {
   console.log(`Bot conectado como ${readyClient.user.tag}`);
+  await logIdentity(readyClient);
 
   try {
     const guild = readyClient.guilds.cache.first();
