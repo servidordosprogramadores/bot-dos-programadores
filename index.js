@@ -24,10 +24,7 @@ const { trackActivity } = require("./src/ranking/activity");
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildVoiceStates,
   ],
 });
