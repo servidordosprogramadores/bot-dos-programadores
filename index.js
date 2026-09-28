@@ -11,7 +11,7 @@ const {
   watchColorRoles,
 } = require("./src/colors/colors");
 const { sendSupportEmbed } = require("./src/support/support");
-const { handleSupportInteraction } = require("./src/support/resolve");
+const { handleSupportInteraction, adoptOrphanTickets } = require("./src/support/resolve");
 const { startRandomMessages } = require("./src/extras/sendRandomMessage");
 const { sendEmbassadorPanel, handleEmbassadorButton } = require("./src/extras/embassador");
 const { sendGithubPanel } = require("./src/github/sendMessage");
@@ -69,6 +69,7 @@ client.once(Events.ClientReady, async (readyClient) => {
     await sendColorEmbed(readyClient);
     watchColorRoles(readyClient);
     await sendSupportEmbed(readyClient);
+    await adoptOrphanTickets(readyClient);
     await sendEmbassadorPanel(readyClient);
     await sendGithubPanel(readyClient);
     startCronGithub(readyClient);

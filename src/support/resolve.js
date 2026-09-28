@@ -1,5 +1,6 @@
 const {
   ChannelType,
+  OverwriteType,
   PermissionFlagsBits,
   ContainerBuilder,
   TextDisplayBuilder,
@@ -17,6 +18,17 @@ const CATEGORY_MAP = {
   "ticket_hackathon": "Hackathons / Eventos",
 };
 
+const CLOSE_TICKET_ID = "close_ticket_button";
+
+function closeTicketRow() {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setStyle(ButtonStyle.Danger)
+      .setLabel("Fechar ticket")
+      .setCustomId(CLOSE_TICKET_ID)
+  );
+}
+
 async function handleSupportInteraction(interaction) {
   try {
     if (
@@ -26,7 +38,7 @@ async function handleSupportInteraction(interaction) {
       await createTicket(interaction);
     } else if (
       interaction.isButton() &&
-      interaction.customId === "close_ticket_button"
+      interaction.customId === CLOSE_TICKET_ID
     ) {
       await closeTicket(interaction);
     }
@@ -159,12 +171,7 @@ async function createTicket(interaction) {
           `-# ${rolesToAdd.filter(Boolean).map(id => `<@&${id}>`).join(" ")}`
         )
       ),
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setStyle(ButtonStyle.Danger)
-        .setLabel("Fechar ticket")
-        .setCustomId("close_ticket_button")
-    ),
+    closeTicketRow(),
   ];
 
   await channel.send({
@@ -216,9 +223,82 @@ async function closeTicket(interaction) {
     return;
   }
 
+  // Toda interação precisa ser respondida em até 3s, senão o Discord mostra
+  // "A interação falhou". Apagar o canal não conta como resposta, então o
+  // clique é confirmado antes — e antes de qualquer chamada lenta à API.
+  await interaction.deferUpdate();
+
   console.log(`[Support] ✓ Deletando canal #${channel.name}...`);
-  await channel.delete();
+  await channel.delete(`Ticket fechado por ${interaction.user.tag}`);
   console.log(`[Support] ✓ Ticket fechado com sucesso.`);
 }
 
-module.exports = { handleSupportInteraction };
+function hasOwnCloseButton(message, botId) {
+  if (message.author.id !== botId) return false;
+  return JSON.stringify(message.components.map((component) => component.toJSON()))
+    .includes(`"${CLOSE_TICKET_ID}"`);
+}
+
+/**
+ * O Discord entrega o clique de um botão à aplicação que enviou a mensagem.
+ * Tickets abertos por outra aplicação (uma antiga, apagada, que aparece como
+ * "Deleted User") ficam com um "Fechar ticket" que nunca chega a este bot.
+ * No boot, cada ticket sem botão deste bot ganha um novo.
+ */
+async function adoptOrphanTickets(client) {
+  const TICKETS_CATEGORY_ID = process.env.TICKETS_CATEGORY_ID;
+  if (!TICKETS_CATEGORY_ID) {
+    console.warn("[Support] ⚠ TICKETS_CATEGORY_ID não definido. Tickets órfãos não serão verificados.");
+    return;
+  }
+
+  const required = [
+    PermissionFlagsBits.ViewChannel,
+    PermissionFlagsBits.SendMessages,
+    PermissionFlagsBits.ReadMessageHistory,
+  ];
+
+  for (const guild of client.guilds.cache.values()) {
+    const tickets = guild.channels.cache.filter(
+      (channel) => channel.parentId === TICKETS_CATEGORY_ID && channel.type === ChannelType.GuildText
+    );
+
+    for (const channel of tickets.values()) {
+      try {
+        if (!channel.permissionsFor(client.user)?.has(required)) {
+          console.warn(`[Support] ⚠ Sem acesso ao ticket #${channel.name}. Dê ao bot Ver canal, Enviar mensagens e Ler histórico na categoria.`);
+          continue;
+        }
+
+        const messages = await channel.messages.fetch({ limit: 50 });
+        if (messages.some((message) => hasOwnCloseButton(message, client.user.id))) continue;
+
+        const owner = channel.permissionOverwrites.cache.find(
+          (overwrite) => overwrite.type === OverwriteType.Member && overwrite.id !== client.user.id
+        );
+
+        const container = new ContainerBuilder()
+          .setAccentColor(parseInt(process.env.MAIN_COLOR))
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              owner ? `### Ticket de <@${owner.id}>` : "### Ticket"
+            ),
+            new TextDisplayBuilder().setContent(
+              "-# Este ticket foi aberto pela versão anterior do bot. Use o botão abaixo para fechá-lo."
+            )
+          );
+
+        await channel.send({
+          flags: MessageFlags.IsComponentsV2,
+          components: [container, closeTicketRow()],
+          allowedMentions: { parse: [] },
+        });
+        console.log(`[Support] ✓ Botão de fechar reenviado no ticket órfão #${channel.name}.`);
+      } catch (error) {
+        console.error(`[Support] ✗ Erro ao verificar ticket #${channel.name}:`, error);
+      }
+    }
+  }
+}
+
+module.exports = { handleSupportInteraction, adoptOrphanTickets };
